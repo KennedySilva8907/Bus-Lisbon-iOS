@@ -1,0 +1,4 @@
+version: 1
+bundleID: pt.kennedysilva.buslisbon
+iconPath: Resources/AppIcon.png
+infoPath: Info.plist
