@@ -39,6 +39,19 @@ struct SearchTests {
         #expect(searchStops("lisboa", in: stops, limit: 1).count == 1)
     }
 
+    @Test func answersTheSameFromAPrebuiltIndex() {
+        let index = StopSearchIndex(stops)
+
+        #expect(index.search("sao sebastiao").map(\.id) == ["120001"])
+        #expect(index.search("0601").map(\.id) == ["060161", "060162"])
+    }
+
+    @Test func givesEightResultsLikeTheWebApp() {
+        let many = (0..<20).map { Stop(id: "9\($0)", name: "Rua \($0)", lat: 38.7, lon: -9.1) }
+
+        #expect(StopSearchIndex(many).search("rua").count == 8)
+    }
+
     @Test func foldsPortugueseLetters() {
         #expect(fold("ÁÀÂÃÉÊÍÓÔÕÚÇ") == "aaaaeeiooouc")
     }

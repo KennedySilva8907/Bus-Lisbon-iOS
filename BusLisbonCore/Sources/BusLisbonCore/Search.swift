@@ -13,17 +13,35 @@ public func fold(_ text: String) -> String {
     String(text.lowercased().map { foldedLetters[$0] ?? $0 })
 }
 
-public func searchStops(_ query: String, in stops: [Stop], limit: Int = 30) -> [Stop] {
-    let trimmed = query.trimmingCharacters(in: .whitespaces)
-    let words = fold(trimmed).split(separator: " ").map(String.init)
-    guard !words.isEmpty else { return [] }
+public struct StopSearchIndex: Sendable {
+    private let stops: [Stop]
+    private let texts: [String]
 
-    let byNumber = stops.filter { $0.id.hasPrefix(trimmed) }
-    let byName = stops.filter { stop in
-        guard !stop.id.hasPrefix(trimmed) else { return false }
-        let text = fold(stop.name + " " + (stop.locality ?? ""))
-        return words.allSatisfy { text.contains($0) }
+    public init(_ stops: [Stop]) {
+        self.stops = stops
+        texts = stops.map { fold($0.name + " " + ($0.locality ?? "")) }
     }
 
-    return Array((byNumber + byName).prefix(limit))
+    public func search(_ query: String, limit: Int = 8) -> [Stop] {
+        let trimmed = query.trimmingCharacters(in: .whitespaces)
+        let words = fold(trimmed).split(separator: " ").map(String.init)
+        guard !words.isEmpty else { return [] }
+
+        var byNumber: [Stop] = []
+        var byName: [Stop] = []
+
+        for (stop, text) in zip(stops, texts) {
+            if stop.id.hasPrefix(trimmed) {
+                byNumber.append(stop)
+            } else if words.allSatisfy({ text.contains($0) }) {
+                byName.append(stop)
+            }
+        }
+
+        return Array((byNumber + byName).prefix(limit))
+    }
+}
+
+public func searchStops(_ query: String, in stops: [Stop], limit: Int = 8) -> [Stop] {
+    StopSearchIndex(stops).search(query, limit: limit)
 }
