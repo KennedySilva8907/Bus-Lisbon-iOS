@@ -9,7 +9,14 @@ struct MapScreen: View {
     var body: some View {
         StopMapView(stops: store.stops ?? [], selectedStop: selectedStop) { selectedStop = $0 }
             .ignoresSafeArea()
-            .overlay(alignment: .top) { offlineBanner }
+            .overlay(alignment: .top) {
+                VStack(spacing: 8) {
+                    SearchBar(index: store.searchIndex, tucked: selectedStop != nil) { selectedStop = $0 }
+                    offlineBanner
+                }
+                .padding(.horizontal, 16)
+                .padding(.top, 8)
+            }
             .sheet(item: $selectedStop) { stop in
                 Text(stop.name)
                     .font(.title2.bold())
@@ -26,7 +33,6 @@ struct MapScreen: View {
             }
             .padding(12)
             .background(.thinMaterial, in: Capsule())
-            .padding(.top, 8)
         }
     }
 }
