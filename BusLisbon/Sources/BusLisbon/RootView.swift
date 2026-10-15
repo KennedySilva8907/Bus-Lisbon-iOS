@@ -7,17 +7,11 @@ struct RootView: View {
 
     var body: some View {
         ZStack {
-            Text(status)
-                .font(.headline)
+            MapScreen(store: store)
             if !splashDone {
                 SplashScreen(stopsReady: store.stops != nil) { splashDone = true }
             }
         }
         .task { await store.load() }
-    }
-
-    private var status: String {
-        if let stops = store.stops { return "\(stops.count) paragens" }
-        return store.failed ? "Sem ligação" : "A carregar…"
     }
 }
