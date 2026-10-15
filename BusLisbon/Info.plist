@@ -4,5 +4,7 @@
 <dict>
     <key>CFBundleDisplayName</key>
     <string>Bus Lisbon</string>
+    <key>NSLocationWhenInUseUsageDescription</key>
+    <string>Para mostrar onde estás no mapa e as paragens perto de ti.</string>
 </dict>
 </plist>
