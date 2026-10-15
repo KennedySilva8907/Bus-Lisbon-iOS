@@ -2,16 +2,22 @@ import SwiftUI
 import BusLisbonCore
 
 struct RootView: View {
+    @State private var store = StopsStore()
+    @State private var splashDone = false
+
     var body: some View {
         ZStack {
-            Color(red: 1, green: 0.8, blue: 0).ignoresSafeArea()
-            VStack(spacing: 12) {
-                Text("Bus Lisbon")
-                    .font(.system(size: 40, weight: .black))
-                Text("\(reportedSeconds(1_789_125_473_000) ?? 0)")
-                    .font(.system(.body, design: .monospaced))
+            Text(status)
+                .font(.headline)
+            if !splashDone {
+                SplashScreen(stopsReady: store.stops != nil) { splashDone = true }
             }
-            .foregroundStyle(.black)
         }
+        .task { await store.load() }
+    }
+
+    private var status: String {
+        if let stops = store.stops { return "\(stops.count) paragens" }
+        return store.failed ? "Sem ligação" : "A carregar…"
     }
 }
