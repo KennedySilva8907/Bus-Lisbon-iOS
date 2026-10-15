@@ -1,0 +1,27 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  core:
+    runs-on: ubuntu-latest
+    container: swift:6.1
+    defaults:
+      run:
+        working-directory: BusLisbonCore
+    steps:
+      - uses: actions/checkout@v4
+      - run: swift test
+
+  app:
+    if: github.event_name == 'push'
+    runs-on: macos-15
+    defaults:
+      run:
+        working-directory: BusLisbon
+    steps:
+      - uses: actions/checkout@v4
+      - run: xcodebuild -scheme BusLisbon -destination "generic/platform=iOS" CODE_SIGNING_ALLOWED=NO build
