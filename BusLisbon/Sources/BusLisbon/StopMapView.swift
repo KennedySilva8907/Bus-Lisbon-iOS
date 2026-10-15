@@ -38,6 +38,32 @@ enum MapPalette {
         dot.fill()
         dot.stroke()
     }
+
+    static let pinAnchor: CGFloat = 62
+
+    static let selectedPin: UIImage = {
+        let pin = Bundle.module.url(forResource: "stop-pin", withExtension: "png")
+            .flatMap { try? Data(contentsOf: $0) }
+            .flatMap { UIImage(data: $0, scale: 6) }
+        let pinSize = pin?.size ?? CGSize(width: 48, height: pinAnchor)
+        let dotRadius: CGFloat = 8
+        let size = CGSize(width: pinSize.width, height: pinAnchor + dotRadius + 2)
+
+        return UIGraphicsImageRenderer(size: size).image { _ in
+            let dot = UIBezierPath(ovalIn: CGRect(
+                x: size.width / 2 - dotRadius,
+                y: pinAnchor - dotRadius,
+                width: dotRadius * 2,
+                height: dotRadius * 2
+            ))
+            dot.lineWidth = 2
+            UIColor.white.setFill()
+            MapPalette.ink.setStroke()
+            dot.fill()
+            dot.stroke()
+            pin?.draw(in: CGRect(origin: .zero, size: pinSize))
+        }
+    }()
 }
 
 struct StopMapView: UIViewRepresentable {
@@ -62,6 +88,7 @@ struct StopMapView: UIViewRepresentable {
             animated: false
         )
         context.coordinator.locationManager.requestWhenInUseAuthorization()
+        _ = MapPalette.selectedPin
 
         let tracking = MKUserTrackingButton(mapView: map)
         tracking.translatesAutoresizingMaskIntoConstraints = false
@@ -71,7 +98,7 @@ struct StopMapView: UIViewRepresentable {
         map.addSubview(tracking)
         NSLayoutConstraint.activate([
             tracking.trailingAnchor.constraint(equalTo: map.safeAreaLayoutGuide.trailingAnchor, constant: -16),
-            tracking.topAnchor.constraint(equalTo: map.safeAreaLayoutGuide.topAnchor, constant: 16),
+            tracking.bottomAnchor.constraint(equalTo: map.safeAreaLayoutGuide.bottomAnchor, constant: -16),
             tracking.widthAnchor.constraint(equalToConstant: 44),
             tracking.heightAnchor.constraint(equalToConstant: 44),
         ])
@@ -164,17 +191,19 @@ final class MapCoordinator: NSObject, MKMapViewDelegate {
             view.animatesWhenAdded = true
             return view
         case is StopAnnotation:
-            let view = mapView.dequeueReusableAnnotationView(withIdentifier: "stop")
-                ?? MKAnnotationView(annotation: annotation, reuseIdentifier: "stop")
+            let view = mapView.dequeueReusableAnnotationView(withIdentifier: "stop") ?? stopView(for: annotation)
             view.annotation = annotation
             view.image = MapPalette.stopDot
             view.displayPriority = .required
             return view
         case is SelectedStopAnnotation:
-            let view = marker(for: annotation, id: "selected", on: mapView)
-            view.markerTintColor = MapPalette.ink
-            view.glyphImage = UIImage(systemName: "mappin")
+            let view = mapView.dequeueReusableAnnotationView(withIdentifier: "selected")
+                ?? MKAnnotationView(annotation: annotation, reuseIdentifier: "selected")
+            view.annotation = annotation
+            view.image = MapPalette.selectedPin
+            view.centerOffset = CGPoint(x: 0, y: MapPalette.selectedPin.size.height / 2 - MapPalette.pinAnchor)
             view.displayPriority = .required
+            view.zPriority = .max
             return view
         default:
             return nil
@@ -195,6 +224,17 @@ final class MapCoordinator: NSObject, MKMapViewDelegate {
             )
         }
         mapView.deselectAnnotation(annotation, animated: false)
+    }
+
+    private func stopView(for annotation: any MKAnnotation) -> MKAnnotationView {
+        let view = MKAnnotationView(annotation: annotation, reuseIdentifier: "stop")
+        view.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(tappedStop(_:))))
+        return view
+    }
+
+    @objc private func tappedStop(_ tap: UITapGestureRecognizer) {
+        guard let stop = (tap.view as? MKAnnotationView)?.annotation as? StopAnnotation else { return }
+        onSelectStop(stop.stop)
     }
 
     private func marker(for annotation: any MKAnnotation, id: String, on map: MKMapView) -> MKMarkerAnnotationView {
