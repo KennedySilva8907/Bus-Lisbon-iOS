@@ -13,7 +13,8 @@ let package = Package(
     targets: [
         .target(
             name: "BusLisbon",
-            dependencies: [.product(name: "BusLisbonCore", package: "BusLisbonCore")]
+            dependencies: [.product(name: "BusLisbonCore", package: "BusLisbonCore")],
+            resources: [.copy("Resources/splash-hero.jpg")]
         ),
     ]
 )
