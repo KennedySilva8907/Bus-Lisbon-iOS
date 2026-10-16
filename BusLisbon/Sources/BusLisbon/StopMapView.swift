@@ -16,7 +16,7 @@ enum Paint {
     static let red = RGB(red: 0.898, green: 0.224, blue: 0.208)
 }
 
-private extension CGContext {
+extension CGContext {
     func setFill(_ colour: RGB, alpha: Double = 1) {
         setFillColor(red: colour.red, green: colour.green, blue: colour.blue, alpha: alpha)
     }
@@ -26,7 +26,7 @@ private extension CGContext {
     }
 }
 
-private func drawRings(
+func drawRings(
     _ renderer: MKOverlayRenderer,
     at points: [MKMapPoint],
     radius: Double,
@@ -54,7 +54,7 @@ private func drawRings(
     context.fillPath()
 }
 
-private func boundingRect(_ points: [MKMapPoint]) -> MKMapRect {
+func boundingRect(_ points: [MKMapPoint]) -> MKMapRect {
     points.reduce(MKMapRect.null) { $0.union(MKMapRect(origin: $1, size: MKMapSize(width: 0, height: 0))) }
 }
 
@@ -112,139 +112,6 @@ final class StopsRenderer: MKOverlayRenderer {
             fill: Paint.yellow,
             fillAlpha: 0.9,
             edge: Paint.ink,
-            in: context
-        )
-    }
-}
-
-final class RouteOverlay: NSObject, MKOverlay {
-    let points: [MKMapPoint]
-    let stops: [MKMapPoint]
-    let colour: RGB
-    let textColour: RGB
-    let coordinate: CLLocationCoordinate2D
-    let boundingMapRect: MKMapRect
-
-    init(route: Route) {
-        points = route.points.map { MKMapPoint(CLLocationCoordinate2D(latitude: $0.lat, longitude: $0.lon)) }
-        stops = route.stops.map { MKMapPoint(CLLocationCoordinate2D(latitude: $0.lat, longitude: $0.lon)) }
-        colour = rgb(hex: route.colour) ?? Paint.red
-        textColour = rgb(hex: route.textColour) ?? Paint.white
-        boundingMapRect = boundingRect(points + stops)
-        coordinate = MKMapPoint(x: boundingMapRect.midX, y: boundingMapRect.midY).coordinate
-    }
-}
-
-final class RouteRenderer: MKOverlayRenderer {
-    private let route: RouteOverlay
-
-    init(route overlay: RouteOverlay) {
-        route = overlay
-        super.init(overlay: overlay)
-    }
-
-    override func draw(_ mapRect: MKMapRect, zoomScale: MKZoomScale, in context: CGContext) {
-        guard route.points.count > 1 else { return }
-
-        let zoom = mapZoom(zoomScale: Double(zoomScale))
-        let unit = 1 / Double(zoomScale)
-        let casing = MapStyle.routeCasing.at(zoom) * unit
-        let reach = mapRect.insetBy(dx: -casing * 4, dy: -casing * 4)
-
-        let line = CGMutablePath()
-        line.move(to: point(for: route.points[0]))
-        route.points.dropFirst().forEach { line.addLine(to: point(for: $0)) }
-
-        context.setLineCap(.round)
-        context.setLineJoin(.round)
-
-        context.setStroke(Paint.white)
-        context.setLineWidth(casing)
-        context.addPath(line)
-        context.strokePath()
-
-        context.setStroke(route.colour)
-        context.setLineWidth(MapStyle.routeLine.at(zoom) * unit)
-        context.addPath(line)
-        context.strokePath()
-
-        drawArrows(spacing: MapStyle.arrowSpacing.at(zoom) * unit, size: MapStyle.arrowSize.at(zoom) * unit, reach: reach, in: context)
-    }
-
-    private func drawArrows(spacing: Double, size: Double, reach: MKMapRect, in context: CGContext) {
-        guard spacing > 0 else { return }
-
-        let arrows = CGMutablePath()
-        var carried = spacing / 2
-
-        for (from, to) in zip(route.points, route.points.dropFirst()) {
-            let dx = to.x - from.x
-            let dy = to.y - from.y
-            let length = (dx * dx + dy * dy).squareRoot()
-            guard length > 0 else { continue }
-
-            var along = carried
-            while along < length {
-                let at = MKMapPoint(x: from.x + dx * along / length, y: from.y + dy * along / length)
-                if reach.contains(at) {
-                    let centre = point(for: at)
-                    let turn = CGAffineTransform(translationX: centre.x, y: centre.y).rotated(by: atan2(dy, dx))
-                    let corners = [(0.14, 0.06), (0.9, 0.5), (0.14, 0.94)].map { corner in
-                        CGPoint(x: (corner.0 - 0.5) * size, y: (corner.1 - 0.5) * size).applying(turn)
-                    }
-                    arrows.addLines(between: corners)
-                    arrows.closeSubpath()
-                }
-                along += spacing
-            }
-            carried = along - length
-        }
-
-        context.setFill(Paint.white, alpha: 0.8)
-        context.addPath(arrows)
-        context.fillPath()
-    }
-}
-
-final class RouteStopsOverlay: NSObject, MKOverlay {
-    let points: [MKMapPoint]
-    let colour: RGB
-    let textColour: RGB
-    let coordinate: CLLocationCoordinate2D
-    let boundingMapRect: MKMapRect
-
-    init(route: RouteOverlay) {
-        points = route.stops
-        colour = route.colour
-        textColour = route.textColour
-        boundingMapRect = boundingRect(points)
-        coordinate = MKMapPoint(x: boundingMapRect.midX, y: boundingMapRect.midY).coordinate
-    }
-}
-
-final class RouteStopsRenderer: MKOverlayRenderer {
-    private let stops: RouteStopsOverlay
-
-    init(stops overlay: RouteStopsOverlay) {
-        stops = overlay
-        super.init(overlay: overlay)
-    }
-
-    override func draw(_ mapRect: MKMapRect, zoomScale: MKZoomScale, in context: CGContext) {
-        let zoom = mapZoom(zoomScale: Double(zoomScale))
-        let unit = 1 / Double(zoomScale)
-        let radius = MapStyle.waypointRadius.at(zoom) * unit
-        let stroke = MapStyle.waypointStroke.at(zoom) * unit
-        let reach = mapRect.insetBy(dx: -(radius + stroke) * 2, dy: -(radius + stroke) * 2)
-
-        drawRings(
-            self,
-            at: stops.points.filter { reach.contains($0) },
-            radius: radius,
-            stroke: stroke,
-            fill: stops.textColour,
-            fillAlpha: 1,
-            edge: stops.colour,
             in: context
         )
     }
@@ -364,6 +231,7 @@ struct StopMapView: UIViewRepresentable {
             ),
             animated: false
         )
+        context.coordinator.map = map
         context.coordinator.locationManager.requestWhenInUseAuthorization()
         _ = MapPalette.selectedPin
         _ = MapPalette.busMarker
@@ -404,15 +272,27 @@ struct StopMapView: UIViewRepresentable {
 final class MapCoordinator: NSObject, MKMapViewDelegate, UIGestureRecognizerDelegate {
     let locationManager = CLLocationManager()
     var onSelectStop: (Stop) -> Void = { _ in }
+    weak var map: MKMapView?
 
     private var stopsOverlay: StopsOverlay?
-    private var routeOverlay: RouteOverlay?
-    private var routeStopsOverlay: RouteStopsOverlay?
     private var shownRoute: Route?
+    private var followed: FollowedRoute?
+    private var routeOverlays: [any MKOverlay] = []
+    private var pathRenderers: [MKPolylineRenderer] = []
+    private var arrowsRenderer: RouteArrowsRenderer?
+    private var routeStopsRenderer: RouteStopsRenderer?
+    private let progress = RouteProgress()
+    private var passedCount = 0
     private var selectedId: String?
+    private var selectedPlace: Coordinate?
     private let selectedMarker = SelectedStopAnnotation()
     private let busMarker = BusAnnotation()
     private var busShown = false
+    private var lastBus: BusPosition?
+    private var relocateBus = false
+    private var busAlong: Double?
+    private var glide: (from: Double, to: Double, start: CFTimeInterval)?
+    private var displayLink: CADisplayLink?
     private var framedKey: FrameKey?
 
     func show(stops: [Stop], muted: Bool, on map: MKMapView) {
@@ -428,6 +308,8 @@ final class MapCoordinator: NSObject, MKMapViewDelegate, UIGestureRecognizerDele
     func show(selected stop: Stop?, on map: MKMapView) {
         guard stop?.id != selectedId else { return }
         selectedId = stop?.id
+        selectedPlace = stop.map { Coordinate(lat: $0.lat, lon: $0.lon) }
+        updateProgress()
         map.removeAnnotation(selectedMarker)
         guard let stop else { return }
 
@@ -439,23 +321,47 @@ final class MapCoordinator: NSObject, MKMapViewDelegate, UIGestureRecognizerDele
         guard route != shownRoute else { return }
         shownRoute = route
 
-        if let routeOverlay { map.removeOverlay(routeOverlay) }
-        if let routeStopsOverlay { map.removeOverlay(routeStopsOverlay) }
-        routeOverlay = nil
-        routeStopsOverlay = nil
+        map.removeOverlays(routeOverlays)
+        routeOverlays = []
+        pathRenderers = []
+        arrowsRenderer = nil
+        routeStopsRenderer = nil
+        followed = nil
+        busAlong = nil
+        passedCount = 0
+        relocateBus = true
+        endGlide()
 
-        guard let route, route.points.count > 1 else { return }
+        guard let route, let followed = FollowedRoute(route) else { return }
+        self.followed = followed
+        updateProgress()
 
-        let overlay = RouteOverlay(route: route)
-        let stops = RouteStopsOverlay(route: overlay)
-        map.addOverlay(overlay, level: .aboveRoads)
+        let colour = rgb(hex: route.colour) ?? Paint.red
+        let textColour = rgb(hex: route.textColour) ?? Paint.white
+        let points = route.points.map { MKMapPoint($0.location) }
+        let paths = [RoutePart.beyond, .travelled, .edge, .ahead].map { part in
+            let path = RoutePath(points: points, count: points.count)
+            path.part = part
+            return path
+        }
+        let arrows = RouteArrows(route: followed, progress: progress, points: points, colour: colour, textColour: textColour)
+        let stops = RouteStops(route: followed, progress: progress, points: points, colour: colour, textColour: textColour)
+
+        map.addOverlays(paths, level: .aboveRoads)
+        map.addOverlay(arrows, level: .aboveRoads)
         map.addOverlay(stops, level: .aboveLabels)
-        routeOverlay = overlay
-        routeStopsOverlay = stops
+        routeOverlays = paths + [arrows, stops]
     }
 
     func show(bus: BusPosition?, on map: MKMapView) {
+        guard bus != lastBus || relocateBus else { return }
+        lastBus = bus
+        relocateBus = false
+
         guard let bus else {
+            endGlide()
+            busAlong = nil
+            updateProgress()
             if busShown {
                 map.removeAnnotation(busMarker)
                 busShown = false
@@ -463,31 +369,145 @@ final class MapCoordinator: NSObject, MKMapViewDelegate, UIGestureRecognizerDele
             return
         }
 
-        let target = CLLocationCoordinate2D(latitude: bus.lat, longitude: bus.lon)
+        let reported = Coordinate(lat: bus.lat, lon: bus.lon)
+        if let followed, let fresh = followed.track.locate(reported, after: busAlong, heading: busAlong == nil ? bus.bearing : nil) {
+            switch nextMove(from: busAlong, to: fresh) {
+            case let .glide(from, to):
+                startGlide(from: from, to: to)
+            case .hold:
+                break
+            case let .jump(to):
+                endGlide()
+                place(along: to)
+            }
+            return
+        }
+
+        endGlide()
         busMarker.bearing = bus.bearing ?? busMarker.bearing
 
         guard busShown else {
-            busMarker.coordinate = target
+            busMarker.coordinate = reported.location
             map.addAnnotation(busMarker)
             busShown = true
             return
         }
 
         let from = Coordinate(lat: busMarker.coordinate.latitude, lon: busMarker.coordinate.longitude)
-        let to = Coordinate(lat: bus.lat, lon: bus.lon)
         let view = map.view(for: busMarker) as? BusView
         let zoom = currentZoom(of: map)
         let bearing = busMarker.bearing
 
-        if shouldSlide(from: from, to: to) {
-            UIView.animate(withDuration: 1) {
-                self.busMarker.coordinate = target
+        if shouldSlide(from: from, to: reported) {
+            UIView.animate(withDuration: RouteLook.glideSeconds) {
+                self.busMarker.coordinate = reported.location
                 view?.update(bearing: bearing, zoom: zoom)
             }
         } else {
-            busMarker.coordinate = target
+            busMarker.coordinate = reported.location
             view?.update(bearing: bearing, zoom: zoom)
         }
+    }
+
+    private func place(along: Double) {
+        guard let followed, let map else { return }
+        busAlong = along
+        busMarker.coordinate = followed.track.coordinate(at: along).location
+        busMarker.bearing = followed.track.heading(at: along)
+
+        if busShown {
+            (map.view(for: busMarker) as? BusView)?.update(bearing: busMarker.bearing, zoom: currentZoom(of: map))
+        } else {
+            map.addAnnotation(busMarker)
+            busShown = true
+        }
+
+        updateProgress()
+    }
+
+    private func startGlide(from: Double, to: Double) {
+        glide = (from, to, CACurrentMediaTime())
+        guard displayLink == nil else { return }
+
+        let link = CADisplayLink(target: self, selector: #selector(stepGlide))
+        link.add(to: .main, forMode: .common)
+        displayLink = link
+    }
+
+    @objc private func stepGlide() {
+        guard let glide else {
+            endGlide()
+            return
+        }
+
+        let t = min(1, (CACurrentMediaTime() - glide.start) / RouteLook.glideSeconds)
+        place(along: glide.from + (glide.to - glide.from) * t * t * (3 - 2 * t))
+        if t >= 1 { endGlide() }
+    }
+
+    private func endGlide() {
+        glide = nil
+        displayLink?.invalidate()
+        displayLink = nil
+    }
+
+    private func updateProgress() {
+        guard let followed else { return }
+        progress.update(bus: busAlong, stop: selectedPlace.flatMap { followed.along(ofStop: $0, after: busAlong) })
+        pathRenderers.forEach { applyProgress(to: $0) }
+        arrowsRenderer?.setNeedsDisplay()
+
+        let passed = followed.stopAlongs.indices.filter { followed.passed($0, bus: busAlong) }.count
+        if passed != passedCount {
+            passedCount = passed
+            routeStopsRenderer?.setNeedsDisplay()
+        }
+    }
+
+    private func applyProgress(to renderer: MKPolylineRenderer) {
+        guard let followed, let path = renderer.overlay as? RoutePath else { return }
+        let snapshot = progress.snapshot
+        let bus = CGFloat(followed.track.fraction(at: snapshot.bus ?? 0))
+        let stop = max(bus, CGFloat(snapshot.stop.map { followed.track.fraction(at: $0) } ?? 1))
+
+        switch path.part {
+        case .travelled:
+            renderer.strokeStart = 0
+            renderer.strokeEnd = bus
+        case .edge, .ahead:
+            renderer.strokeStart = bus
+            renderer.strokeEnd = stop
+        case .beyond:
+            renderer.strokeStart = stop
+            renderer.strokeEnd = 1
+        }
+        renderer.setNeedsDisplay()
+    }
+
+    private func pathRenderer(for path: RoutePath) -> MKPolylineRenderer {
+        let renderer = MKPolylineRenderer(polyline: path)
+        let colour = rgb(hex: shownRoute?.colour ?? "") ?? Paint.red
+        renderer.lineCap = .round
+        renderer.lineJoin = .round
+
+        switch path.part {
+        case .travelled:
+            renderer.strokeColor = RouteLook.travelled.ui(alpha: 0.85)
+            renderer.lineWidth = RouteLook.faded
+        case .edge:
+            renderer.strokeColor = colour.shaded(by: RouteLook.edgeShade).ui()
+            renderer.lineWidth = RouteLook.edge
+        case .ahead:
+            renderer.strokeColor = colour.ui()
+            renderer.lineWidth = RouteLook.line
+        case .beyond:
+            renderer.strokeColor = colour.ui(alpha: RouteLook.fadedAlpha)
+            renderer.lineWidth = RouteLook.faded
+        }
+
+        applyProgress(to: renderer)
+        pathRenderers.append(renderer)
+        return renderer
     }
 
     func frame(stop: Stop?, bus: BusPosition?, panel: PanelCover, token: Int, on map: MKMapView) {
@@ -569,12 +589,18 @@ final class MapCoordinator: NSObject, MKMapViewDelegate, UIGestureRecognizerDele
 
     func mapView(_ mapView: MKMapView, rendererFor overlay: any MKOverlay) -> MKOverlayRenderer {
         switch overlay {
-        case let route as RouteOverlay:
-            return RouteRenderer(route: route)
+        case let path as RoutePath:
+            return pathRenderer(for: path)
+        case let arrows as RouteArrows:
+            let renderer = RouteArrowsRenderer(arrows: arrows)
+            arrowsRenderer = renderer
+            return renderer
+        case let stops as RouteStops:
+            let renderer = RouteStopsRenderer(stops: stops)
+            routeStopsRenderer = renderer
+            return renderer
         case let stops as StopsOverlay:
             return StopsRenderer(stops: stops)
-        case let stops as RouteStopsOverlay:
-            return RouteStopsRenderer(stops: stops)
         default:
             return MKOverlayRenderer(overlay: overlay)
         }
