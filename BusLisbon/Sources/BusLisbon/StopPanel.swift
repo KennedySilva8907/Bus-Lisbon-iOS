@@ -37,9 +37,9 @@ struct StopPanel: View {
             Button(action: onClose) {
                 Image(systemName: "xmark")
                     .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Theme.yellow)
                     .frame(width: 32, height: 32)
-                    .background(Color.white.opacity(0.08), in: Circle())
+                    .background(Theme.yellow.opacity(0.12), in: Circle())
             }
             .accessibilityLabel("Fechar paragem")
         }
