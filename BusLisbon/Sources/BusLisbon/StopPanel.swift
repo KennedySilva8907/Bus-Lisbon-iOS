@@ -4,7 +4,7 @@ import BusLisbonCore
 struct StopPanel: View {
     let stop: Stop
     let favourites: FavouriteStops
-    let followingVehicleId: String?
+    let following: FollowTarget?
     let onFollow: (Arrival) -> Void
     let onClose: () -> Void
 
@@ -160,7 +160,7 @@ struct StopPanel: View {
     }
 
     private func isFollowing(_ arrival: Arrival) -> Bool {
-        !arrival.vehicleId.isEmpty && arrival.vehicleId == followingVehicleId
+        following?.isFollowing(arrival) == true
     }
 
     private func follow(_ arrival: Arrival) {

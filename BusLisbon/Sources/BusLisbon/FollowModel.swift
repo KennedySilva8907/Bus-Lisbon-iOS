@@ -7,6 +7,11 @@ struct FollowTarget: Hashable {
     let tripId: String
     let lineId: String
     let patternId: String
+    let scheduledUnix: Int
+
+    func isFollowing(_ arrival: Arrival) -> Bool {
+        isSameDeparture(arrival, lineId: lineId, scheduledUnix: scheduledUnix)
+    }
 }
 
 struct FollowRun: Hashable {

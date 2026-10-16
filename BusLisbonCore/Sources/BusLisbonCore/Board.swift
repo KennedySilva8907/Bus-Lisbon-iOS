@@ -109,6 +109,10 @@ public func wentByAt(_ arrival: Arrival) -> Int? {
     arrival.wentByUnix ?? arrival.observedUnix
 }
 
+public func isSameDeparture(_ arrival: Arrival, lineId: String, scheduledUnix: Int) -> Bool {
+    arrival.lineId == lineId && arrival.scheduledUnix == scheduledUnix
+}
+
 public func anyArrivalTime(_ arrivals: [Arrival]) -> Bool {
     arrivals.contains { $0.estimatedUnix > 0 || ($0.observedUnix ?? 0) > 0 }
 }

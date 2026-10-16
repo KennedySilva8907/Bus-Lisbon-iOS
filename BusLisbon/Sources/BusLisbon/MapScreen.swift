@@ -57,12 +57,13 @@ struct MapScreen: View {
             .onChange(of: selectedStop?.id) { _, _ in detent = MapScreen.panelOpen }
             .sensoryFeedback(.impact(weight: .light), trigger: closeTaps)
             .sheet(item: $selectedStop, onDismiss: { following = nil }) { stop in
-                StopPanel(stop: stop, favourites: favourites, followingVehicleId: following?.vehicleId) { arrival in
+                StopPanel(stop: stop, favourites: favourites, following: following) { arrival in
                     following = FollowTarget(
                         vehicleId: arrival.vehicleId,
                         tripId: arrival.tripId,
                         lineId: arrival.lineId,
-                        patternId: arrival.patternId
+                        patternId: arrival.patternId,
+                        scheduledUnix: arrival.scheduledUnix
                     )
                     fitToken += 1
                 } onClose: {
