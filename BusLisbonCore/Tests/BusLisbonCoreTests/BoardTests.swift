@@ -342,3 +342,24 @@ struct LabelTests {
         #expect(minutesAway(at - 120, now: at) == -2)
     }
 }
+
+struct ArrivalIdentityTests {
+    @Test func keepsTheSameIdWhenTheTripIdLosesAPrefixAfterTheBusPasses() throws {
+        let coming = try #require(toArrivals([entry()]).first)
+        let gone = try #require(toArrivals([BoardEntry(
+            lineId: "2753",
+            patternId: "[BNA17]2753_0_1",
+            headsign: "Milharado",
+            tripId: "[BNA17]2753_0_1|1|3|1835",
+            vehicleId: "1257",
+            scheduledUnix: now + 240,
+            estimatedUnix: now + 300,
+            isPast: true,
+            isRealtime: true,
+            tripRunning: true
+        )]).first)
+
+        #expect(coming.tripId != gone.tripId)
+        #expect(coming.id == gone.id)
+    }
+}
