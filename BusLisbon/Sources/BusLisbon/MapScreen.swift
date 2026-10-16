@@ -9,6 +9,7 @@ struct MapScreen: View {
     @State private var follow = FollowModel()
     @State private var fitToken = 0
     @State private var wake = 0
+    @State private var closeTaps = 0
     @State private var detent: PresentationDetent = MapScreen.panelOpen
     @Environment(\.scenePhase) private var scenePhase
 
@@ -53,6 +54,7 @@ struct MapScreen: View {
                 if phase == .active { wake += 1 }
             }
             .onChange(of: selectedStop?.id) { _, _ in detent = MapScreen.panelOpen }
+            .sensoryFeedback(.impact(weight: .light), trigger: closeTaps)
             .sheet(item: $selectedStop, onDismiss: { following = nil }) { stop in
                 StopPanel(stop: stop, followingVehicleId: following?.vehicleId) { arrival in
                     following = FollowTarget(
@@ -62,6 +64,9 @@ struct MapScreen: View {
                         patternId: arrival.patternId
                     )
                     fitToken += 1
+                } onClose: {
+                    closeTaps += 1
+                    selectedStop = nil
                 }
                 .environment(\.colorScheme, .dark)
                 .presentationDetents([MapScreen.panelClosed, MapScreen.panelOpen], selection: $detent)
