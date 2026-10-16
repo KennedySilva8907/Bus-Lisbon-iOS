@@ -14,7 +14,7 @@ let package = Package(
         .target(
             name: "BusLisbon",
             dependencies: [.product(name: "BusLisbonCore", package: "BusLisbonCore")],
-            resources: [.copy("Resources/splash-hero.jpg"), .copy("Resources/stop-pin.png")]
+            resources: [.copy("Resources/splash-hero.jpg"), .copy("Resources/stop-pin.png"), .copy("Resources/bus-marker.png")]
         ),
     ]
 )
