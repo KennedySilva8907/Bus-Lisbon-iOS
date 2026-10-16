@@ -5,6 +5,7 @@ struct StopPanel: View {
     let stop: Stop
     let followingVehicleId: String?
     let onFollow: (Arrival) -> Void
+    let onClose: () -> Void
 
     @State private var model = StopPanelModel()
     @State private var showAllPast = false
@@ -30,6 +31,21 @@ struct StopPanel: View {
     }
 
     private var header: some View {
+        HStack(alignment: .top, spacing: 8) {
+            title
+            Spacer(minLength: 0)
+            Button(action: onClose) {
+                Image(systemName: "xmark")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(.secondary)
+                    .frame(width: 32, height: 32)
+                    .background(Color.white.opacity(0.08), in: Circle())
+            }
+            .accessibilityLabel("Fechar paragem")
+        }
+    }
+
+    private var title: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(stop.name)
                 .font(.system(size: 18, weight: .bold))
