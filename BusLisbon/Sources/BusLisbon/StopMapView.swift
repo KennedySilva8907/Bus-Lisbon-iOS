@@ -650,12 +650,56 @@ final class MapCoordinator: NSObject, MKMapViewDelegate, UIGestureRecognizerDele
         }
     }
 
+    func mapView(_ mapView: MKMapView, didAdd views: [MKAnnotationView]) {
+        guard !UIAccessibility.isReduceMotionEnabled,
+              let pin = views.first(where: { $0.annotation is SelectedStopAnnotation }) else { return }
+
+        pin.transform = CGAffineTransform(translationX: 0, y: -48)
+        pin.alpha = 0
+        UIView.animate(withDuration: 0.55, delay: 0, usingSpringWithDamping: 0.55, initialSpringVelocity: 0.4) {
+            pin.transform = .identity
+            pin.alpha = 1
+        } completion: { _ in
+            self.ripple(under: pin)
+        }
+    }
+
+    private func ripple(under pin: MKAnnotationView) {
+        let radius: CGFloat = 8
+        let ring = CAShapeLayer()
+        ring.frame = CGRect(x: pin.bounds.midX - radius, y: MapPalette.pinAnchor - radius, width: radius * 2, height: radius * 2)
+        ring.path = UIBezierPath(ovalIn: CGRect(x: 0, y: 0, width: radius * 2, height: radius * 2)).cgPath
+        ring.fillColor = UIColor(Theme.yellow).withAlphaComponent(0.25).cgColor
+        ring.strokeColor = UIColor(Theme.yellow).cgColor
+        ring.lineWidth = 2
+        ring.opacity = 0
+        pin.layer.insertSublayer(ring, at: 0)
+
+        let grow = CABasicAnimation(keyPath: "transform.scale")
+        grow.fromValue = 1
+        grow.toValue = 3.5
+        let fade = CABasicAnimation(keyPath: "opacity")
+        fade.fromValue = 0.8
+        fade.toValue = 0
+        let wave = CAAnimationGroup()
+        wave.animations = [grow, fade]
+        wave.duration = 0.7
+        wave.timingFunction = CAMediaTimingFunction(name: .easeOut)
+
+        CATransaction.begin()
+        CATransaction.setCompletionBlock { ring.removeFromSuperlayer() }
+        ring.add(wave, forKey: "wave")
+        CATransaction.commit()
+    }
+
     func mapView(_ mapView: MKMapView, viewFor annotation: any MKAnnotation) -> MKAnnotationView? {
         switch annotation {
         case is SelectedStopAnnotation:
             let view = mapView.dequeueReusableAnnotationView(withIdentifier: "selected")
                 ?? MKAnnotationView(annotation: annotation, reuseIdentifier: "selected")
             view.annotation = annotation
+            view.transform = .identity
+            view.alpha = 1
             view.image = MapPalette.selectedPin
             view.centerOffset = CGPoint(x: 0, y: MapPalette.selectedPin.size.height / 2 - MapPalette.pinAnchor)
             view.displayPriority = .required
