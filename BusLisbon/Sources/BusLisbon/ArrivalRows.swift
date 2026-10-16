@@ -58,6 +58,8 @@ struct UpcomingRow: View {
     let now: Int
     let selected: Bool
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     var body: some View {
         let description = describeArrival(arrival)
         let time = arrivalTime(arrival)
@@ -89,6 +91,8 @@ struct UpcomingRow: View {
                 Text(countdownLabel(time, now: now))
                     .font(.system(size: 15, weight: .bold))
                     .foregroundStyle(countdownColour(time: time, tracked: tracked))
+                    .contentTransition(.numericText(countsDown: true))
+                    .animation(reduceMotion ? nil : .snappy, value: countdownLabel(time, now: now))
                 Text(Clock.text(time))
                     .font(.system(size: 10, design: .monospaced))
                     .foregroundStyle(.secondary)
@@ -113,6 +117,8 @@ struct PastRow: View {
     let arrival: Arrival
     let now: Int
     let selected: Bool
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         let wentBy = wentByAt(arrival) ?? arrival.scheduledUnix
@@ -141,6 +147,8 @@ struct PastRow: View {
                 Text(agoLabel(wentBy, now: now))
                     .font(.system(size: 15, weight: .bold))
                     .foregroundStyle(.secondary)
+                    .contentTransition(.numericText())
+                    .animation(reduceMotion ? nil : .snappy, value: agoLabel(wentBy, now: now))
                 Text(Clock.text(wentBy))
                     .font(.system(size: 10, design: .monospaced))
                     .foregroundStyle(.secondary)

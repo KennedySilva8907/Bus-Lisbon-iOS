@@ -10,6 +10,9 @@ struct StopPanel: View {
 
     @State private var model = StopPanelModel()
     @State private var showAllPast = false
+    @State private var revealed = false
+    @Namespace private var rowSpace
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         TimelineView(.periodic(from: .now, by: 1)) { context in
@@ -27,9 +30,11 @@ struct StopPanel: View {
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(16)
+                .animation(reduceMotion ? nil : .snappy, value: split.upcoming.map(\.id) + [""] + split.past.map(\.id))
             }
         }
         .task(id: stop.id) { await model.run(stopId: stop.id) }
+        .onChange(of: model.loaded, initial: true) { _, loaded in revealed = loaded }
     }
 
     private var header: some View {
@@ -90,11 +95,7 @@ struct StopPanel: View {
     @ViewBuilder
     private func status(now: Int) -> some View {
         if !model.loaded {
-            HStack(spacing: 10) {
-                ProgressView()
-                Text("A carregar chegadas…")
-                    .foregroundStyle(.secondary)
-            }
+            EmptyView()
         } else if model.arrivals.isEmpty && model.failed {
             Text("Não foi possível carregar as chegadas.")
                 .foregroundStyle(.secondary)
@@ -134,6 +135,7 @@ struct StopPanel: View {
             }
             ForEach(showAllPast ? older + recent : recent) { arrival in
                 PastRow(arrival: arrival, now: now, selected: isFollowing(arrival))
+                    .matchedGeometryEffect(id: arrival.id, in: rowSpace)
                     .onTapGesture { follow(arrival) }
             }
         }
@@ -146,17 +148,29 @@ struct StopPanel: View {
                 .font(.system(size: 11, weight: .bold))
                 .tracking(1.5)
                 .foregroundStyle(.secondary)
+            if !model.loaded {
+                ArrivalPlaceholder()
+                    .transition(.opacity)
+            }
             if arrivals.isEmpty && model.loaded {
                 Text("Sem chegadas nos próximos 120 minutos.")
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 24)
             }
-            ForEach(arrivals) { arrival in
+            ForEach(Array(arrivals.enumerated()), id: \.element.id) { index, arrival in
                 UpcomingRow(arrival: arrival, now: now, selected: isFollowing(arrival))
+                    .matchedGeometryEffect(id: arrival.id, in: rowSpace)
+                    .opacity(revealed ? 1 : 0)
+                    .offset(y: revealed || reduceMotion ? 0 : 14)
+                    .animation(
+                        reduceMotion ? nil : .spring(response: 0.45, dampingFraction: 0.8).delay(Double(min(index, 8)) * 0.05),
+                        value: revealed
+                    )
                     .onTapGesture { follow(arrival) }
             }
         }
+        .animation(.easeOut(duration: 0.25), value: model.loaded)
     }
 
     private func isFollowing(_ arrival: Arrival) -> Bool {

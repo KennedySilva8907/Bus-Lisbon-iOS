@@ -231,6 +231,7 @@ struct StopMapView: UIViewRepresentable {
     let route: Route?
     let panel: PanelCover
     let fitToken: Int
+    let revealed: Bool
     let onSelectStop: (Stop) -> Void
 
     func makeCoordinator() -> MapCoordinator {
@@ -247,7 +248,7 @@ struct StopMapView: UIViewRepresentable {
         map.setRegion(
             MKCoordinateRegion(
                 center: CLLocationCoordinate2D(latitude: 38.7223, longitude: -9.1393),
-                span: MKCoordinateSpan(latitudeDelta: 0.08, longitudeDelta: 0.08)
+                span: MKCoordinateSpan(latitudeDelta: 0.3, longitudeDelta: 0.3)
             ),
             animated: false
         )
@@ -298,6 +299,8 @@ struct StopMapView: UIViewRepresentable {
         coordinator.show(route: route, on: map)
         coordinator.show(bus: bus, on: map)
         coordinator.frame(stop: selectedStop, bus: bus, panel: panel, token: fitToken, on: map)
+        coordinator.revealed = revealed
+        coordinator.flyToUser(on: map)
     }
 }
 
@@ -327,6 +330,8 @@ final class MapCoordinator: NSObject, MKMapViewDelegate, UIGestureRecognizerDele
     private var glide: (from: Double, to: Double, start: CFTimeInterval)?
     private var displayLink: CADisplayLink?
     private var centredOnUser = false
+    private var userSpot: CLLocationCoordinate2D?
+    var revealed = false
     private var framedKey: FrameKey?
 
     func show(stops: [Stop], muted: Bool, on map: MKMapView) {
@@ -618,12 +623,23 @@ final class MapCoordinator: NSObject, MKMapViewDelegate, UIGestureRecognizerDele
     }
 
     func mapView(_ mapView: MKMapView, didUpdate userLocation: MKUserLocation) {
-        guard !centredOnUser, selectedId == nil, let location = userLocation.location else { return }
+        userSpot = userLocation.location?.coordinate
+        flyToUser(on: mapView)
+    }
+
+    func flyToUser(on map: MKMapView) {
+        guard revealed, !centredOnUser, selectedId == nil, let userSpot else { return }
         centredOnUser = true
-        mapView.setRegion(
-            MKCoordinateRegion(center: location.coordinate, latitudinalMeters: 900, longitudinalMeters: 900),
-            animated: true
-        )
+
+        guard !UIAccessibility.isReduceMotionEnabled else {
+            map.setRegion(MKCoordinateRegion(center: userSpot, latitudinalMeters: 900, longitudinalMeters: 900), animated: false)
+            return
+        }
+
+        let camera = MKMapCamera(lookingAtCenter: userSpot, fromDistance: 1_800, pitch: 0, heading: 0)
+        UIView.animate(withDuration: 1.8, delay: 0, options: .curveEaseInOut) {
+            map.camera = camera
+        }
     }
 
     func mapViewDidChangeVisibleRegion(_ mapView: MKMapView) {
@@ -650,12 +666,56 @@ final class MapCoordinator: NSObject, MKMapViewDelegate, UIGestureRecognizerDele
         }
     }
 
+    func mapView(_ mapView: MKMapView, didAdd views: [MKAnnotationView]) {
+        guard !UIAccessibility.isReduceMotionEnabled,
+              let pin = views.first(where: { $0.annotation is SelectedStopAnnotation }) else { return }
+
+        pin.transform = CGAffineTransform(translationX: 0, y: -48)
+        pin.alpha = 0
+        UIView.animate(withDuration: 0.55, delay: 0, usingSpringWithDamping: 0.55, initialSpringVelocity: 0.4) {
+            pin.transform = .identity
+            pin.alpha = 1
+        } completion: { _ in
+            self.ripple(under: pin)
+        }
+    }
+
+    private func ripple(under pin: MKAnnotationView) {
+        let radius: CGFloat = 8
+        let ring = CAShapeLayer()
+        ring.frame = CGRect(x: pin.bounds.midX - radius, y: MapPalette.pinAnchor - radius, width: radius * 2, height: radius * 2)
+        ring.path = UIBezierPath(ovalIn: CGRect(x: 0, y: 0, width: radius * 2, height: radius * 2)).cgPath
+        ring.fillColor = UIColor(Theme.yellow).withAlphaComponent(0.25).cgColor
+        ring.strokeColor = UIColor(Theme.yellow).cgColor
+        ring.lineWidth = 2
+        ring.opacity = 0
+        pin.layer.insertSublayer(ring, at: 0)
+
+        let grow = CABasicAnimation(keyPath: "transform.scale")
+        grow.fromValue = 1
+        grow.toValue = 3.5
+        let fade = CABasicAnimation(keyPath: "opacity")
+        fade.fromValue = 0.8
+        fade.toValue = 0
+        let wave = CAAnimationGroup()
+        wave.animations = [grow, fade]
+        wave.duration = 0.7
+        wave.timingFunction = CAMediaTimingFunction(name: .easeOut)
+
+        CATransaction.begin()
+        CATransaction.setCompletionBlock { ring.removeFromSuperlayer() }
+        ring.add(wave, forKey: "wave")
+        CATransaction.commit()
+    }
+
     func mapView(_ mapView: MKMapView, viewFor annotation: any MKAnnotation) -> MKAnnotationView? {
         switch annotation {
         case is SelectedStopAnnotation:
             let view = mapView.dequeueReusableAnnotationView(withIdentifier: "selected")
                 ?? MKAnnotationView(annotation: annotation, reuseIdentifier: "selected")
             view.annotation = annotation
+            view.transform = .identity
+            view.alpha = 1
             view.image = MapPalette.selectedPin
             view.centerOffset = CGPoint(x: 0, y: MapPalette.selectedPin.size.height / 2 - MapPalette.pinAnchor)
             view.displayPriority = .required
