@@ -6,7 +6,6 @@ enum RouteLook {
     static let line: CGFloat = 7
     static let edge: CGFloat = 10
     static let faded: CGFloat = 5
-    static let fadedAlpha: CGFloat = 0.35
     static let travelled = RGB(red: 0.58, green: 0.59, blue: 0.62)
     static let edgeShade = 0.62
     static let arrowGap = 110.0
@@ -35,7 +34,7 @@ extension Coordinate {
 }
 
 enum RoutePart {
-    case travelled, edge, ahead, beyond
+    case travelled, edge, ahead
 }
 
 final class RoutePath: MKPolyline {
@@ -44,14 +43,14 @@ final class RoutePath: MKPolyline {
 
 final class RouteProgress: @unchecked Sendable {
     private let lock = NSLock()
-    private var current: (bus: Double?, stop: Double?) = (nil, nil)
+    private var current: Double?
 
-    var snapshot: (bus: Double?, stop: Double?) {
+    var bus: Double? {
         lock.withLock { current }
     }
 
-    func update(bus: Double?, stop: Double?) {
-        lock.withLock { current = (bus, stop) }
+    func update(bus: Double?) {
+        lock.withLock { current = bus }
     }
 }
 
@@ -94,7 +93,7 @@ final class RouteArrowsRenderer: MKOverlayRenderer {
         let unit = 1 / Double(zoomScale)
         let metresPerPoint = MKMetersPerMapPointAtLatitude(marks.coordinate.latitude) * unit
         let track = marks.route.track
-        let progress = marks.progress.snapshot
+        let bus = marks.progress.bus
         let ring = MapStyle.waypointRadius.at(zoom) + MapStyle.waypointStroke.at(zoom) + RouteLook.stopClearance
         let reach = mapRect.insetBy(dx: -12 * unit, dy: -12 * unit)
         let halfWidth = RouteLook.arrowHalfWidth * unit
@@ -102,8 +101,8 @@ final class RouteArrowsRenderer: MKOverlayRenderer {
         let chevrons = CGMutablePath()
 
         let spots = track.arrowSpots(
-            from: progress.bus ?? 0,
-            to: progress.stop ?? track.length,
+            from: bus ?? 0,
+            to: track.length,
             every: RouteLook.arrowGap * metresPerPoint,
             clearing: marks.route.stopAlongs.compactMap { $0 },
             by: ring * metresPerPoint
@@ -143,7 +142,7 @@ final class RouteStopsRenderer: MKOverlayRenderer {
         let radius = MapStyle.waypointRadius.at(zoom) * unit
         let stroke = MapStyle.waypointStroke.at(zoom) * unit
         let reach = mapRect.insetBy(dx: -(radius + stroke) * 2, dy: -(radius + stroke) * 2)
-        let bus = marks.progress.snapshot.bus
+        let bus = marks.progress.bus
         var passed: [MKMapPoint] = []
         var ahead: [MKMapPoint] = []
 

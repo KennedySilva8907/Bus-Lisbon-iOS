@@ -68,17 +68,6 @@ struct TrackTests {
         #expect(alongs[2] > firstLeg)
     }
 
-    @Test func picksTheNextVisitToMyStop() throws {
-        let route = try #require(FollowedRoute(outAndBack))
-        let myStop = Coordinate(lat: 38.7501, lon: -9.145)
-
-        let beforeTheBusGets = try #require(route.along(ofStop: myStop, after: 100))
-        let afterItWentBy = try #require(route.along(ofStop: myStop, after: firstLeg))
-
-        #expect(beforeTheBusGets < firstLeg)
-        #expect(afterItWentBy > firstLeg)
-    }
-
     @Test func marksTheStopsTheBusHasPassed() throws {
         let route = try #require(FollowedRoute(outAndBack))
 
