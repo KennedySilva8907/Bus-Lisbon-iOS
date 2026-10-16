@@ -3,7 +3,6 @@ import Foundation
 public let trackReachMetres = 60.0
 public let trackBackslideMetres = 30.0
 public let trackHoldMetres = 150.0
-public let stopMatchMetres = 25.0
 public let passTieMetres = 15.0
 let headingReachMetres = 12.0
 let headingDisagreement = 100.0
@@ -159,14 +158,6 @@ public struct FollowedRoute: Sendable {
             hint = along ?? hint
             return along
         }
-    }
-
-    public func along(ofStop stop: Coordinate, after bus: Double?) -> Double? {
-        let matches = zip(stops, stopAlongs).compactMap { metres($0.0, stop) <= stopMatchMetres ? $0.1 : nil }
-        if let bus, let next = matches.first(where: { $0 >= bus - trackBackslideMetres }) {
-            return next
-        }
-        return matches.first ?? track.locate(stop, after: bus)
     }
 
     public func passed(_ index: Int, bus: Double?) -> Bool {

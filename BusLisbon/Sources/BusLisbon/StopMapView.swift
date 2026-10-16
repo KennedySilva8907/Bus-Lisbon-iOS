@@ -320,7 +320,6 @@ final class MapCoordinator: NSObject, MKMapViewDelegate, UIGestureRecognizerDele
     private let progress = RouteProgress()
     private var passedCount = 0
     private var selectedId: String?
-    private var selectedPlace: Coordinate?
     private let selectedMarker = SelectedStopAnnotation()
     private let busMarker = BusAnnotation()
     private var busShown = false
@@ -347,8 +346,6 @@ final class MapCoordinator: NSObject, MKMapViewDelegate, UIGestureRecognizerDele
     func show(selected stop: Stop?, on map: MKMapView) {
         guard stop?.id != selectedId else { return }
         selectedId = stop?.id
-        selectedPlace = stop.map { Coordinate(lat: $0.lat, lon: $0.lon) }
-        updateProgress()
         map.removeAnnotation(selectedMarker)
         guard let stop else { return }
 
@@ -378,7 +375,7 @@ final class MapCoordinator: NSObject, MKMapViewDelegate, UIGestureRecognizerDele
         let colour = rgb(hex: route.colour) ?? Paint.red
         let textColour = rgb(hex: route.textColour) ?? Paint.white
         let points = route.points.map { MKMapPoint($0.location) }
-        let paths = [RoutePart.beyond, .travelled, .edge, .ahead].map { part in
+        let paths = [RoutePart.travelled, .edge, .ahead].map { part in
             let path = RoutePath(points: points, count: points.count)
             path.part = part
             return path
@@ -492,7 +489,7 @@ final class MapCoordinator: NSObject, MKMapViewDelegate, UIGestureRecognizerDele
 
     private func updateProgress() {
         guard let followed else { return }
-        progress.update(bus: busAlong, stop: selectedPlace.flatMap { followed.along(ofStop: $0, after: busAlong) })
+        progress.update(bus: busAlong)
         pathRenderers.forEach { applyProgress(to: $0) }
         arrowsRenderer?.setNeedsDisplay()
 
@@ -505,9 +502,7 @@ final class MapCoordinator: NSObject, MKMapViewDelegate, UIGestureRecognizerDele
 
     private func applyProgress(to renderer: MKPolylineRenderer) {
         guard let followed, let path = renderer.overlay as? RoutePath else { return }
-        let snapshot = progress.snapshot
-        let bus = CGFloat(followed.track.fraction(at: snapshot.bus ?? 0))
-        let stop = max(bus, CGFloat(snapshot.stop.map { followed.track.fraction(at: $0) } ?? 1))
+        let bus = CGFloat(followed.track.fraction(at: progress.bus ?? 0))
 
         switch path.part {
         case .travelled:
@@ -515,9 +510,6 @@ final class MapCoordinator: NSObject, MKMapViewDelegate, UIGestureRecognizerDele
             renderer.strokeEnd = bus
         case .edge, .ahead:
             renderer.strokeStart = bus
-            renderer.strokeEnd = stop
-        case .beyond:
-            renderer.strokeStart = stop
             renderer.strokeEnd = 1
         }
         renderer.setNeedsDisplay()
@@ -539,9 +531,6 @@ final class MapCoordinator: NSObject, MKMapViewDelegate, UIGestureRecognizerDele
         case .ahead:
             renderer.strokeColor = colour.ui()
             renderer.lineWidth = RouteLook.line
-        case .beyond:
-            renderer.strokeColor = colour.ui(alpha: RouteLook.fadedAlpha)
-            renderer.lineWidth = RouteLook.faded
         }
 
         applyProgress(to: renderer)
