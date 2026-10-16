@@ -151,15 +151,21 @@ final class NotificationPresenter: NSObject, UNUserNotificationCenterDelegate, S
 
     func userNotificationCenter(
         _ center: UNUserNotificationCenter,
-        willPresent notification: UNNotification
-    ) async -> UNNotificationPresentationOptions {
-        [.banner, .list, .sound]
+        willPresent notification: UNNotification,
+        withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
+    ) {
+        completionHandler([.banner, .list, .sound])
     }
 
-    func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse) async {
-        guard let text = response.notification.request.content.userInfo["alert"] as? String,
-              let alert = try? JSONDecoder().decode(ArrivalAlert.self, from: Data(text.utf8)) else { return }
+    func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        didReceive response: UNNotificationResponse,
+        withCompletionHandler completionHandler: @escaping () -> Void
+    ) {
+        let text = response.notification.request.content.userInfo["alert"] as? String
+        completionHandler()
 
-        await MainActor.run { NotificationRoute.shared.opened = alert }
+        guard let text, let alert = try? JSONDecoder().decode(ArrivalAlert.self, from: Data(text.utf8)) else { return }
+        Task { @MainActor in NotificationRoute.shared.opened = alert }
     }
 }
