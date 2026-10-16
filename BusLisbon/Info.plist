@@ -6,5 +6,13 @@
     <string>Bus Lisbon</string>
     <key>NSLocationWhenInUseUsageDescription</key>
     <string>Para mostrar onde estás no mapa e as paragens perto de ti.</string>
+    <key>BGTaskSchedulerPermittedIdentifiers</key>
+    <array>
+        <string>pt.kennedysilva.buslisbon.alerts</string>
+    </array>
+    <key>UIBackgroundModes</key>
+    <array>
+        <string>fetch</string>
+    </array>
 </dict>
 </plist>

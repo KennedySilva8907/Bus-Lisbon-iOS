@@ -57,6 +57,8 @@ struct UpcomingRow: View {
     let arrival: Arrival
     let now: Int
     let selected: Bool
+    var bell: Bool? = nil
+    var onBell: () -> Void = {}
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -87,6 +89,18 @@ struct UpcomingRow: View {
                 }
             }
             Spacer(minLength: 8)
+            if let bell {
+                Button(action: onBell) {
+                    Image(systemName: bell ? "bell.and.waves.left.and.right.fill" : "bell")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(bell ? Theme.yellow : Color.secondary)
+                        .contentTransition(.symbolEffect(.replace))
+                        .frame(width: 32, height: 32)
+                        .background(bell ? Theme.yellow.opacity(0.2) : Color.white.opacity(0.05), in: Circle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(bell ? "Cancelar aviso" : "Agendar aviso")
+            }
             VStack(alignment: .trailing, spacing: 2) {
                 Text(countdownLabel(time, now: now))
                     .font(.system(size: 15, weight: .bold))

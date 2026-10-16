@@ -2,7 +2,7 @@ import Foundation
 import Observation
 import BusLisbonCore
 
-struct FollowTarget: Hashable {
+struct FollowTarget: Hashable, Codable {
     let vehicleId: String
     let tripId: String
     let lineId: String
