@@ -155,7 +155,7 @@ final class RouteStopsRenderer: MKOverlayRenderer {
             }
         }
 
-        drawRings(self, at: passed, radius: radius, stroke: stroke, fill: Paint.white, fillAlpha: 1, edge: RouteLook.travelled, in: context)
-        drawRings(self, at: ahead, radius: radius, stroke: stroke, fill: marks.textColour, fillAlpha: 1, edge: marks.colour, in: context)
+        drawRings(self, at: passed, radius: radius, stroke: stroke, fill: Paint.white, edge: RouteLook.travelled, in: context)
+        drawRings(self, at: ahead, radius: radius, stroke: stroke, fill: marks.textColour, edge: marks.colour, in: context)
     }
 }

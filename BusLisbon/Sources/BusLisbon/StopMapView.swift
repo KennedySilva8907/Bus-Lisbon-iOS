@@ -11,7 +11,6 @@ final class BusAnnotation: MKPointAnnotation {
 
 enum Paint {
     static let yellow = RGB(red: 1, green: 0.8, blue: 0)
-    static let ink = RGB(red: 0.102, green: 0.102, blue: 0.102)
     static let white = RGB(red: 1, green: 1, blue: 1)
     static let red = RGB(red: 0.898, green: 0.224, blue: 0.208)
     static let shadow = RGB(red: 0, green: 0, blue: 0)
@@ -33,7 +32,6 @@ func drawRings(
     radius: Double,
     stroke: Double,
     fill: RGB,
-    fillAlpha: Double,
     edge: RGB,
     in context: CGContext
 ) {
@@ -50,7 +48,7 @@ func drawRings(
     context.addPath(edges)
     context.fillPath()
 
-    context.setFill(fill, alpha: fillAlpha)
+    context.setFill(fill)
     context.addPath(fills)
     context.fillPath()
 }
