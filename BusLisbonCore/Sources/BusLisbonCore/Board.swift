@@ -26,7 +26,7 @@ public struct Arrival: Sendable, Equatable, Identifiable {
     public let tripRunning: Bool
     public let vehicleId: String
 
-    public var id: String { "\(tripId)@\(scheduledUnix)" }
+    public var id: String { "\(patternId)@\(scheduledUnix)" }
 }
 
 public func toArrivals(_ board: [BoardEntry]) -> [Arrival] {

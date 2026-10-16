@@ -3,6 +3,7 @@ import Foundation
 public let trackReachMetres = 60.0
 public let trackBackslideMetres = 30.0
 public let trackHoldMetres = 150.0
+public let passTieMetres = 15.0
 let headingReachMetres = 12.0
 let headingDisagreement = 100.0
 
@@ -82,8 +83,10 @@ public struct RouteTrack: Sendable {
         }
 
         if let hint {
-            if let forward = passes.first(where: { $0.along >= hint - trackBackslideMetres }) {
-                return forward.along
+            let ahead = passes.filter { $0.along >= hint - trackBackslideMetres }
+            if let closest = ahead.map(\.offset).min(),
+               let pick = ahead.first(where: { $0.offset <= closest + passTieMetres }) {
+                return pick.along
             }
         } else if let heading {
             let agreeing = passes.filter { turn(between: $0.heading, and: heading) <= headingDisagreement }

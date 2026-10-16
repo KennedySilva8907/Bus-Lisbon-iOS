@@ -1,10 +1,16 @@
 import SwiftUI
 import BusLisbonCore
 
+struct SearchBarShape: Equatable {
+    var openness: CGFloat = 1
+    var listing = false
+}
+
 struct SearchBar: View {
     let index: StopSearchIndex?
     let favourites: FavouriteStops
     let tucked: Bool
+    @Binding var shape: SearchBarShape
     let onPick: (Stop) -> Void
 
     @State private var query = ""
@@ -20,7 +26,8 @@ struct SearchBar: View {
     private let circle: CGFloat = 48
     private let rowHeight: CGFloat = 64
     private let rowsShown = 4
-    private let settle = Animation.spring(response: 0.35, dampingFraction: 0.78)
+    static let settle = Animation.spring(response: 0.35, dampingFraction: 0.78)
+    static let openHeight: CGFloat = 56
 
     private var collapsed: Bool { (tucked && !reopened) || swipedAway }
 
@@ -37,10 +44,10 @@ struct SearchBar: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             bar
-            if focused && openness > 0.99 {
+            if listing {
                 if searched.count >= 2 {
                     dropdown
-                } else if !favouriteStops.isEmpty {
+                } else {
                     favouritesDropdown
                 }
             }
@@ -53,7 +60,8 @@ struct SearchBar: View {
                     .onChange(of: proxy.size.width) { _, width in fullWidth = width }
             }
         )
-        .animation(settle, value: collapsed)
+        .animation(Self.settle, value: collapsed)
+        .onChange(of: SearchBarShape(openness: openness, listing: listing), initial: true) { _, now in shape = now }
         .sensoryFeedback(.impact(weight: .light), trigger: collapsed)
         .sensoryFeedback(.impact(weight: .medium), trigger: swipedOff)
         .onChange(of: tucked) { _, isTucked in
@@ -88,7 +96,7 @@ struct SearchBar: View {
         }
         .padding(.leading, 16 * openness)
         .padding(.trailing, 12 * openness)
-        .frame(width: fullWidth > 0 ? barWidth : nil, height: circle + 8 * openness, alignment: .trailing)
+        .frame(width: fullWidth > 0 ? barWidth : nil, height: circle + (Self.openHeight - circle) * openness, alignment: .trailing)
         .frame(maxWidth: fullWidth > 0 ? nil : .infinity)
         .background(Theme.ink.opacity(0.9), in: RoundedRectangle(cornerRadius: 14 + 10 * (1 - openness)))
         .overlay(
@@ -132,6 +140,10 @@ struct SearchBar: View {
             }
             .accessibilityLabel("Limpar")
         }
+    }
+
+    private var listing: Bool {
+        focused && openness > 0.99 && (searched.count >= 2 || !favouriteStops.isEmpty)
     }
 
     private var favouriteStops: [Stop] {
@@ -219,7 +231,7 @@ struct SearchBar: View {
         let moved = drag.translation.width
         let flung = drag.predictedEndTranslation.width
 
-        withAnimation(settle) {
+        withAnimation(Self.settle) {
             if !collapsed, moved < -fullWidth * 0.25 || flung < -fullWidth * 0.5 {
                 clear()
                 swipedAway = true
