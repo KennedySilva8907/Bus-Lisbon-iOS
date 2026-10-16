@@ -16,10 +16,12 @@ public func fold(_ text: String) -> String {
 public struct StopSearchIndex: Sendable {
     private let stops: [Stop]
     private let texts: [String]
+    let byId: [String: Stop]
 
     public init(_ stops: [Stop]) {
         self.stops = stops
         texts = stops.map { fold($0.name + " " + ($0.locality ?? "")) }
+        byId = Dictionary(stops.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
     }
 
     public func search(_ query: String, limit: Int = 8) -> [Stop] {
