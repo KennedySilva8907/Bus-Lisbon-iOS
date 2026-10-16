@@ -3,6 +3,7 @@ import BusLisbonCore
 
 struct MapScreen: View {
     let store: StopsStore
+    let revealed: Bool
 
     @State private var selectedStop: Stop?
     @State private var following: FollowTarget?
@@ -25,7 +26,8 @@ struct MapScreen: View {
             bus: following == nil ? nil : follow.state.shown,
             route: following == nil ? nil : follow.route,
             panel: selectedStop == nil ? .none : detent == MapScreen.panelOpen ? .open : .closed,
-            fitToken: fitToken
+            fitToken: fitToken,
+            revealed: revealed
         ) { selectedStop = $0 }
             .ignoresSafeArea()
             .overlay(alignment: .top) {
