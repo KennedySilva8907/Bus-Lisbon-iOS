@@ -11,8 +11,17 @@ struct ArrivalAlert: Codable, Identifiable, Equatable {
     let lineId: String
     let headsign: String
     let minutesBefore: Int
+    let follow: FollowTarget
     var arrivalUnix: Int
     var fireUnix: Int
+}
+
+@Observable
+@MainActor
+final class NotificationRoute {
+    static let shared = NotificationRoute()
+
+    var opened: ArrivalAlert?
 }
 
 @Observable
@@ -40,6 +49,13 @@ final class ArrivalAlerts {
             lineId: arrival.lineId,
             headsign: arrival.headsign,
             minutesBefore: minutesBefore,
+            follow: FollowTarget(
+                vehicleId: arrival.vehicleId,
+                tripId: arrival.tripId,
+                lineId: arrival.lineId,
+                patternId: arrival.patternId,
+                scheduledUnix: arrival.scheduledUnix
+            ),
             arrivalUnix: arrivalUnix,
             fireUnix: alertFireUnix(arrivalUnix: arrivalUnix, minutesBefore: minutesBefore)
         )
@@ -111,6 +127,9 @@ final class ArrivalAlerts {
         content.title = "🚌 \(alert.lineId) a chegar"
         content.body = "\(alert.stopName) daqui a ~\(minutes) min · \(alert.headsign)"
         content.sound = .default
+        if let encoded = try? JSONEncoder().encode(alert) {
+            content.userInfo = ["alert": String(decoding: encoded, as: UTF8.self)]
+        }
 
         let wait = max(1, TimeInterval(alert.fireUnix) - Date().timeIntervalSince1970)
         let trigger = UNTimeIntervalNotificationTrigger(timeInterval: wait, repeats: false)
@@ -135,5 +154,12 @@ final class NotificationPresenter: NSObject, UNUserNotificationCenterDelegate, S
         willPresent notification: UNNotification
     ) async -> UNNotificationPresentationOptions {
         [.banner, .list, .sound]
+    }
+
+    func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse) async {
+        guard let text = response.notification.request.content.userInfo["alert"] as? String,
+              let alert = try? JSONDecoder().decode(ArrivalAlert.self, from: Data(text.utf8)) else { return }
+
+        await MainActor.run { NotificationRoute.shared.opened = alert }
     }
 }

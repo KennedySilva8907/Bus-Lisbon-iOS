@@ -52,7 +52,7 @@ struct MapScreen: View {
                 }
             }
             .animation(.snappy, value: ArrivalAlerts.shared.alerts.isEmpty)
-            .sheet(isPresented: $showAlerts, onDismiss: openStopFromAlerts) {
+            .sheet(isPresented: $showAlerts, onDismiss: { openStopFromAlerts(); openFromNotification() }) {
                 AlertsList { openAfterAlerts = $0 }
                     .environment(\.colorScheme, .dark)
                     .presentationDetents([.medium, .large])
@@ -88,8 +88,10 @@ struct MapScreen: View {
                 }
             }
             .onChange(of: selectedStop?.id) { _, _ in detent = MapScreen.panelOpen }
+            .onChange(of: NotificationRoute.shared.opened, initial: true) { _, _ in openFromNotification() }
+            .onChange(of: revealed && store.searchIndex != nil) { _, _ in openFromNotification() }
             .sensoryFeedback(.impact(weight: .light), trigger: closeTaps)
-            .sheet(item: $selectedStop, onDismiss: { following = nil }) { stop in
+            .sheet(item: $selectedStop, onDismiss: { following = nil; openFromNotification() }) { stop in
                 StopPanel(stop: stop, favourites: favourites, following: following) { arrival in
                     following = FollowTarget(
                         vehicleId: arrival.vehicleId,
@@ -109,6 +111,27 @@ struct MapScreen: View {
                 .presentationBackground { PanelBackground() }
                 .presentationCornerRadius(PanelBackground.cornerRadius)
             }
+    }
+
+    private func openFromNotification() {
+        guard let alert = NotificationRoute.shared.opened,
+              revealed,
+              let stop = store.searchIndex?.stops(withIds: [alert.stopId]).first else { return }
+
+        if showAlerts {
+            showAlerts = false
+            return
+        }
+
+        if let open = selectedStop, open.id != stop.id {
+            selectedStop = nil
+            return
+        }
+
+        NotificationRoute.shared.opened = nil
+        selectedStop = stop
+        following = alert.follow
+        fitToken += 1
     }
 
     private func openStopFromAlerts() {
