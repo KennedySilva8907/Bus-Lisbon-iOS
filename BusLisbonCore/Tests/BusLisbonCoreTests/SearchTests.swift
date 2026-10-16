@@ -8,42 +8,37 @@ private let stops = [
     Stop(id: "120001", name: "Av. São Sebastião", lat: 38.73, lon: -9.15, locality: "Lisboa"),
 ]
 
+private let index = StopSearchIndex(stops)
+
 struct SearchTests {
     @Test func findsByName() {
-        #expect(searchStops("angola", in: stops).map(\.id) == ["060162"])
+        #expect(index.search("angola").map(\.id) == ["060162"])
     }
 
     @Test func ignoresCaseAndAccents() {
-        #expect(searchStops("SAO SEBASTIAO", in: stops).map(\.id) == ["120001"])
-        #expect(searchStops("canecas", in: stops).map(\.id) == ["110061"])
+        #expect(index.search("SAO SEBASTIAO").map(\.id) == ["120001"])
+        #expect(index.search("canecas").map(\.id) == ["110061"])
     }
 
     @Test func needsEveryWordButNotInOrder() {
-        #expect(searchStops("secundaria caneças", in: stops).map(\.id) == ["110061"])
-        #expect(searchStops("rua desvio", in: stops).isEmpty)
+        #expect(index.search("secundaria caneças").map(\.id) == ["110061"])
+        #expect(index.search("rua desvio").isEmpty)
     }
 
     @Test func findsByLocality() {
-        #expect(searchStops("olival", in: stops).map(\.id) == ["060162"])
+        #expect(index.search("olival").map(\.id) == ["060162"])
     }
 
     @Test func putsStopNumbersFirst() {
-        #expect(searchStops("0601", in: stops).map(\.id) == ["060161", "060162"])
+        #expect(index.search("0601").map(\.id) == ["060161", "060162"])
     }
 
     @Test func givesNothingForAnEmptyQuery() {
-        #expect(searchStops("   ", in: stops).isEmpty)
+        #expect(index.search("   ").isEmpty)
     }
 
     @Test func stopsAtTheLimit() {
-        #expect(searchStops("lisboa", in: stops, limit: 1).count == 1)
-    }
-
-    @Test func answersTheSameFromAPrebuiltIndex() {
-        let index = StopSearchIndex(stops)
-
-        #expect(index.search("sao sebastiao").map(\.id) == ["120001"])
-        #expect(index.search("0601").map(\.id) == ["060161", "060162"])
+        #expect(index.search("lisboa", limit: 1).count == 1)
     }
 
     @Test func givesEightResultsLikeTheWebApp() {

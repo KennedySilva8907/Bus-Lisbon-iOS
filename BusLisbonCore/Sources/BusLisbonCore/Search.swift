@@ -41,7 +41,3 @@ public struct StopSearchIndex: Sendable {
         return Array((byNumber + byName).prefix(limit))
     }
 }
-
-public func searchStops(_ query: String, in stops: [Stop], limit: Int = 8) -> [Stop] {
-    StopSearchIndex(stops).search(query, limit: limit)
-}
