@@ -90,11 +90,7 @@ struct StopPanel: View {
     @ViewBuilder
     private func status(now: Int) -> some View {
         if !model.loaded {
-            HStack(spacing: 10) {
-                ProgressView()
-                Text("A carregar chegadas…")
-                    .foregroundStyle(.secondary)
-            }
+            EmptyView()
         } else if model.arrivals.isEmpty && model.failed {
             Text("Não foi possível carregar as chegadas.")
                 .foregroundStyle(.secondary)
@@ -146,6 +142,10 @@ struct StopPanel: View {
                 .font(.system(size: 11, weight: .bold))
                 .tracking(1.5)
                 .foregroundStyle(.secondary)
+            if !model.loaded {
+                ArrivalPlaceholder()
+                    .transition(.opacity)
+            }
             if arrivals.isEmpty && model.loaded {
                 Text("Sem chegadas nos próximos 120 minutos.")
                     .foregroundStyle(.secondary)
@@ -157,6 +157,7 @@ struct StopPanel: View {
                     .onTapGesture { follow(arrival) }
             }
         }
+        .animation(.easeOut(duration: 0.25), value: model.loaded)
     }
 
     private func isFollowing(_ arrival: Arrival) -> Bool {
