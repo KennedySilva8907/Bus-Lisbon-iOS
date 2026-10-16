@@ -23,6 +23,7 @@ struct StopPanel: View {
                     }
                     upcoming(split.upcoming, now: now)
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(16)
             }
         }
