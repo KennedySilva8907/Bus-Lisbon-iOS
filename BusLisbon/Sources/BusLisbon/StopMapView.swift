@@ -231,6 +231,7 @@ struct StopMapView: UIViewRepresentable {
     let route: Route?
     let panel: PanelCover
     let fitToken: Int
+    let revealed: Bool
     let onSelectStop: (Stop) -> Void
 
     func makeCoordinator() -> MapCoordinator {
@@ -247,7 +248,7 @@ struct StopMapView: UIViewRepresentable {
         map.setRegion(
             MKCoordinateRegion(
                 center: CLLocationCoordinate2D(latitude: 38.7223, longitude: -9.1393),
-                span: MKCoordinateSpan(latitudeDelta: 0.08, longitudeDelta: 0.08)
+                span: MKCoordinateSpan(latitudeDelta: 0.3, longitudeDelta: 0.3)
             ),
             animated: false
         )
@@ -298,6 +299,8 @@ struct StopMapView: UIViewRepresentable {
         coordinator.show(route: route, on: map)
         coordinator.show(bus: bus, on: map)
         coordinator.frame(stop: selectedStop, bus: bus, panel: panel, token: fitToken, on: map)
+        coordinator.revealed = revealed
+        coordinator.flyToUser(on: map)
     }
 }
 
@@ -327,6 +330,8 @@ final class MapCoordinator: NSObject, MKMapViewDelegate, UIGestureRecognizerDele
     private var glide: (from: Double, to: Double, start: CFTimeInterval)?
     private var displayLink: CADisplayLink?
     private var centredOnUser = false
+    private var userSpot: CLLocationCoordinate2D?
+    var revealed = false
     private var framedKey: FrameKey?
 
     func show(stops: [Stop], muted: Bool, on map: MKMapView) {
@@ -618,12 +623,23 @@ final class MapCoordinator: NSObject, MKMapViewDelegate, UIGestureRecognizerDele
     }
 
     func mapView(_ mapView: MKMapView, didUpdate userLocation: MKUserLocation) {
-        guard !centredOnUser, selectedId == nil, let location = userLocation.location else { return }
+        userSpot = userLocation.location?.coordinate
+        flyToUser(on: mapView)
+    }
+
+    func flyToUser(on map: MKMapView) {
+        guard revealed, !centredOnUser, selectedId == nil, let userSpot else { return }
         centredOnUser = true
-        mapView.setRegion(
-            MKCoordinateRegion(center: location.coordinate, latitudinalMeters: 900, longitudinalMeters: 900),
-            animated: true
-        )
+
+        guard !UIAccessibility.isReduceMotionEnabled else {
+            map.setRegion(MKCoordinateRegion(center: userSpot, latitudinalMeters: 900, longitudinalMeters: 900), animated: false)
+            return
+        }
+
+        let camera = MKMapCamera(lookingAtCenter: userSpot, fromDistance: 1_800, pitch: 0, heading: 0)
+        UIView.animate(withDuration: 1.8, delay: 0, options: .curveEaseInOut) {
+            map.camera = camera
+        }
     }
 
     func mapViewDidChangeVisibleRegion(_ mapView: MKMapView) {

@@ -7,7 +7,7 @@ struct RootView: View {
 
     var body: some View {
         ZStack {
-            MapScreen(store: store)
+            MapScreen(store: store, revealed: splashDone)
             if !splashDone {
                 SplashScreen(stopsReady: store.stops != nil) { splashDone = true }
             }
