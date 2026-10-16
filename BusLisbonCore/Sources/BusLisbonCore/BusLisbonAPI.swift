@@ -29,7 +29,17 @@ public struct BusLisbonAPI: Sendable {
     }
 
     public func vehicle(id: String) async throws -> BusPosition? {
-        let (data, status) = try await fetch(Endpoint.vehicle(id), Self.quick)
+        try await position(at: Endpoint.vehicle(id))
+    }
+
+    public func vehicle(id: String, tripId: String, lineId: String) async throws -> BusPosition? {
+        isFleetVehicleId(id)
+            ? try await position(at: Endpoint.vehicle(id))
+            : try await position(at: Endpoint.vehicleOnTrip(tripId, number: id, lineId: lineId))
+    }
+
+    private func position(at url: URL) async throws -> BusPosition? {
+        let (data, status) = try await fetch(url, Self.quick)
         if status == 404 { return nil }
         guard (200..<300).contains(status) else { throw APIError.status(status) }
         return try JSONDecoder().decode(GatewayVehicleResponse.self, from: data).vehicle.position

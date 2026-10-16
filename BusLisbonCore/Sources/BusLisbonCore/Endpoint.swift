@@ -18,6 +18,10 @@ enum Endpoint {
 
     static func board(_ stopId: String) -> URL { url(backend + "/api/arrivals/by-stop/" + segment(stopId)) }
     static func vehicle(_ id: String) -> URL { url(backend + "/api/vehicles/" + segment(id)) }
+    static func vehicleOnTrip(_ tripId: String, number: String, lineId: String) -> URL {
+        url(backend + "/api/vehicles/by-trip/" + segment(tripId) + "?number=" + segment(number) + "&lineId=" + segment(lineId))
+    }
+
     static func pattern(_ id: String) -> URL { url(carris + "/patterns/" + segment(id)) }
     static func shape(_ id: String) -> URL { url(carris + "/shapes/" + segment(id)) }
 

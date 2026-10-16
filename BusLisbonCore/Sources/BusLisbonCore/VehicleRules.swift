@@ -33,3 +33,13 @@ public func keepTheNewer(_ held: ReceivedPosition?, target: String, incoming: Bu
 
     return ReceivedPosition(target: target, bus: incoming)
 }
+
+public func isFleetVehicleId(_ id: String) -> Bool {
+    id.wholeMatch(of: /\d+\|\d+|\[[^\]]+\]\d+/) != nil
+}
+
+public func findBus(in fleet: [BusPosition], id: String, lineId: String) -> BusPosition? {
+    if let exact = fleet.first(where: { $0.id == id }) { return exact }
+    guard !isFleetVehicleId(id) else { return nil }
+    return fleet.first { $0.id.hasSuffix("]" + id) && $0.lineId == lineId }
+}
