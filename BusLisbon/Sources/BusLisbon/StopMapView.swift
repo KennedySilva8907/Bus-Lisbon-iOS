@@ -30,11 +30,11 @@ enum MapPalette {
     static let yellow = UIColor(red: 1, green: 0.8, blue: 0, alpha: 1)
     static let ink = UIColor(white: 0.1, alpha: 1)
 
-    static let stopDot: UIImage = UIGraphicsImageRenderer(size: CGSize(width: 12, height: 12)).image { _ in
+    static let stopDot: UIImage = UIGraphicsImageRenderer(size: CGSize(width: 18, height: 18)).image { _ in
         MapPalette.yellow.setFill()
         MapPalette.ink.setStroke()
-        let dot = UIBezierPath(ovalIn: CGRect(x: 1, y: 1, width: 10, height: 10))
-        dot.lineWidth = 1.5
+        let dot = UIBezierPath(ovalIn: CGRect(x: 1, y: 1, width: 16, height: 16))
+        dot.lineWidth = 2
         dot.fill()
         dot.stroke()
     }
