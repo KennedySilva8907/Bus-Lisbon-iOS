@@ -3,6 +3,7 @@ import BusLisbonCore
 
 struct SearchBar: View {
     let index: StopSearchIndex?
+    let favourites: FavouriteStops
     let tucked: Bool
     let onPick: (Stop) -> Void
 
@@ -13,9 +14,12 @@ struct SearchBar: View {
     @AppStorage("searchBarCollapsed") private var swipedAway = false
     @State private var fullWidth: CGFloat = 0
     @State private var dragX: CGFloat = 0
+    @State private var swipedOff = 0
     @FocusState private var focused: Bool
 
     private let circle: CGFloat = 48
+    private let rowHeight: CGFloat = 64
+    private let rowsShown = 4
     private let settle = Animation.spring(response: 0.35, dampingFraction: 0.78)
 
     private var collapsed: Bool { (tucked && !reopened) || swipedAway }
@@ -33,8 +37,12 @@ struct SearchBar: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             bar
-            if focused && openness > 0.99 && searched.count >= 2 {
-                dropdown
+            if focused && openness > 0.99 {
+                if searched.count >= 2 {
+                    dropdown
+                } else if !favouriteStops.isEmpty {
+                    favouritesDropdown
+                }
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -47,6 +55,7 @@ struct SearchBar: View {
         )
         .animation(settle, value: collapsed)
         .sensoryFeedback(.impact(weight: .light), trigger: collapsed)
+        .sensoryFeedback(.impact(weight: .medium), trigger: swipedOff)
         .onChange(of: tucked) { _, isTucked in
             if isTucked {
                 reopened = false
@@ -125,6 +134,56 @@ struct SearchBar: View {
         }
     }
 
+    private var favouriteStops: [Stop] {
+        index?.stops(withIds: favourites.ids) ?? []
+    }
+
+    private var favouritesDropdown: some View {
+        let stops = favouriteStops
+
+        return VStack(alignment: .leading, spacing: 0) {
+            HStack(spacing: 4) {
+                Image(systemName: "star.fill")
+                    .foregroundStyle(Theme.yellow)
+                Text("FAVORITOS")
+                    .tracking(1)
+                    .foregroundStyle(Color.gray)
+            }
+            .font(.system(size: 10, weight: .bold))
+            .padding(.horizontal, 12)
+            .padding(.top, 12)
+            .padding(.bottom, 4)
+
+            List {
+                ForEach(stops) { stop in
+                    Button {
+                        pick(stop)
+                    } label: {
+                        SearchRow(stop: stop, starred: true)
+                            .frame(height: rowHeight)
+                    }
+                    .listRowInsets(EdgeInsets())
+                    .listRowBackground(Color.clear)
+                    .listRowSeparatorTint(Color.white.opacity(0.06))
+                    .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                        Button(role: .destructive) {
+                            swipedOff += 1
+                            withAnimation(.snappy) { favourites.remove(stop.id) }
+                        } label: {
+                            Label("Remover", systemImage: "star.slash.fill")
+                        }
+                    }
+                }
+            }
+            .listStyle(.plain)
+            .scrollContentBackground(.hidden)
+            .environment(\.defaultMinListRowHeight, 0)
+            .scrollDisabled(stops.count <= rowsShown)
+            .frame(height: CGFloat(min(stops.count, rowsShown)) * rowHeight - (stops.count > rowsShown ? rowHeight / 2 : 0))
+        }
+        .modifier(DropdownCard())
+    }
+
     private var dropdown: some View {
         Group {
             if results.isEmpty {
@@ -153,11 +212,7 @@ struct SearchBar: View {
                 .fixedSize(horizontal: false, vertical: true)
             }
         }
-        .background(Theme.ink.opacity(0.95), in: RoundedRectangle(cornerRadius: 14))
-        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.white.opacity(0.1)))
-        .clipShape(RoundedRectangle(cornerRadius: 14))
-        .shadow(color: .black.opacity(0.3), radius: 12, y: 4)
-        .transition(.opacity.combined(with: .move(edge: .top)))
+        .modifier(DropdownCard())
     }
 
     private func finishDrag(_ drag: DragGesture.Value) {
@@ -201,8 +256,20 @@ struct SearchBar: View {
     }
 }
 
+private struct DropdownCard: ViewModifier {
+    func body(content: Content) -> some View {
+        content
+            .background(Theme.ink.opacity(0.95), in: RoundedRectangle(cornerRadius: 14))
+            .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.white.opacity(0.1)))
+            .clipShape(RoundedRectangle(cornerRadius: 14))
+            .shadow(color: .black.opacity(0.3), radius: 12, y: 4)
+            .transition(.opacity.combined(with: .move(edge: .top)))
+    }
+}
+
 struct SearchRow: View {
     let stop: Stop
+    var starred = false
 
     var body: some View {
         HStack(spacing: 8) {
@@ -216,6 +283,11 @@ struct SearchRow: View {
                     .foregroundStyle(Color.gray)
             }
             Spacer(minLength: 8)
+            if starred {
+                Image(systemName: "star.fill")
+                    .font(.system(size: 12))
+                    .foregroundStyle(Theme.yellow)
+            }
             Text("#\(stop.id)")
                 .font(.caption2.bold())
                 .tracking(1)

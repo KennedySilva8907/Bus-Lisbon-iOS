@@ -3,6 +3,7 @@ import BusLisbonCore
 
 struct StopPanel: View {
     let stop: Stop
+    let favourites: FavouriteStops
     let followingVehicleId: String?
     let onFollow: (Arrival) -> Void
     let onClose: () -> Void
@@ -35,6 +36,7 @@ struct StopPanel: View {
         HStack(alignment: .top, spacing: 8) {
             title
             Spacer(minLength: 0)
+            starButton
             Button(action: onClose) {
                 Image(systemName: "xmark")
                     .font(.system(size: 14, weight: .semibold))
@@ -44,6 +46,25 @@ struct StopPanel: View {
             }
             .accessibilityLabel("Fechar paragem")
         }
+    }
+
+    private var starButton: some View {
+        let starred = favourites.contains(stop.id)
+
+        return Button {
+            favourites.toggle(stop.id)
+        } label: {
+            Image(systemName: starred ? "star.fill" : "star")
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(Theme.yellow)
+                .contentTransition(.symbolEffect(.replace))
+                .symbolEffect(.bounce, value: starred)
+                .frame(width: 32, height: 32)
+                .background(Theme.yellow.opacity(starred ? 0.24 : 0.12), in: Circle())
+                .animation(.snappy, value: starred)
+        }
+        .sensoryFeedback(.impact(weight: .light), trigger: starred)
+        .accessibilityLabel(starred ? "Remover dos favoritos" : "Adicionar aos favoritos")
     }
 
     private var title: some View {

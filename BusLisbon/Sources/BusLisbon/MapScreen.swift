@@ -7,6 +7,7 @@ struct MapScreen: View {
     @State private var selectedStop: Stop?
     @State private var following: FollowTarget?
     @State private var follow = FollowModel()
+    @State private var favourites = FavouriteStops()
     @State private var fitToken = 0
     @State private var wake = 0
     @State private var closeTaps = 0
@@ -29,7 +30,7 @@ struct MapScreen: View {
             .ignoresSafeArea()
             .overlay(alignment: .top) {
                 VStack(spacing: 8) {
-                    SearchBar(index: store.searchIndex, tucked: selectedStop != nil) { selectedStop = $0 }
+                    SearchBar(index: store.searchIndex, favourites: favourites, tucked: selectedStop != nil) { selectedStop = $0 }
                     offlineBanner
                     noPositionBanner
                 }
@@ -56,7 +57,7 @@ struct MapScreen: View {
             .onChange(of: selectedStop?.id) { _, _ in detent = MapScreen.panelOpen }
             .sensoryFeedback(.impact(weight: .light), trigger: closeTaps)
             .sheet(item: $selectedStop, onDismiss: { following = nil }) { stop in
-                StopPanel(stop: stop, followingVehicleId: following?.vehicleId) { arrival in
+                StopPanel(stop: stop, favourites: favourites, followingVehicleId: following?.vehicleId) { arrival in
                     following = FollowTarget(
                         vehicleId: arrival.vehicleId,
                         tripId: arrival.tripId,
