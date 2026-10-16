@@ -18,10 +18,11 @@ struct MapScreen: View {
                 .padding(.top, 8)
             }
             .sheet(item: $selectedStop) { stop in
-                Text(stop.name)
-                    .font(.title2.bold())
-                    .padding()
-                    .presentationDetents([.medium])
+                StopPanel(stop: stop, followingVehicleId: nil) { _ in }
+                    .environment(\.colorScheme, .dark)
+                    .presentationDetents([.medium, .large])
+                    .presentationBackgroundInteraction(.enabled(upThrough: .medium))
+                    .presentationBackground(Theme.panel)
             }
     }
 
