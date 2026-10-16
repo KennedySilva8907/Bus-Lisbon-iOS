@@ -72,7 +72,8 @@ struct MapScreen: View {
                 .environment(\.colorScheme, .dark)
                 .presentationDetents([MapScreen.panelClosed, MapScreen.panelOpen], selection: $detent)
                 .presentationBackgroundInteraction(.enabled(upThrough: MapScreen.panelOpen))
-                .presentationBackground(Theme.panel)
+                .presentationBackground { PanelBackground() }
+                .presentationCornerRadius(PanelBackground.cornerRadius)
             }
     }
 
