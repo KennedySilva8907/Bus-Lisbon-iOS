@@ -4,7 +4,7 @@ import Testing
 
 private struct NotStubbed: Error {}
 
-private let patternJSON = ##"{"color":"#C61D23","text_color":"#FFFFFF","shape_id":"137_A6RA0","id":"2812_0_2","path":[]}"##
+private let patternJSON = ##"{"color":"#C61D23","text_color":"#000000","shape_id":"137_A6RA0","id":"2812_0_2","path":[{"stop":{"id":"060302","name":"Campo Grande (Metro) P5","lat":"38.759503","lon":"-9.160182"},"stop_sequence":1},{"stop":{"id":"x","name":"Sem sítio","lat":"","lon":""},"stop_sequence":2}]}"##
 private let shapeJSON = #"{"geojson":{"geometry":{"coordinates":[[-9.160337,38.75942],[-9.15,38.76],[-9.1]]}}}"#
 
 private let api = BusLisbonAPI { url, _ in
@@ -19,10 +19,22 @@ struct RouteTests {
     @Test func readsLongitudeThenLatitude() async throws {
         let route = try await api.route(patternId: "2812_0_2")
 
-        #expect(route == Route(colour: "#C61D23", points: [
-            Coordinate(lat: 38.75942, lon: -9.160337),
-            Coordinate(lat: 38.76, lon: -9.15),
-        ]))
+        #expect(route == Route(
+            colour: "#C61D23",
+            textColour: "#000000",
+            points: [
+                Coordinate(lat: 38.75942, lon: -9.160337),
+                Coordinate(lat: 38.76, lon: -9.15),
+            ],
+            stops: [Coordinate(lat: 38.759503, lon: -9.160182)]
+        ))
+    }
+
+    @Test func fallsBackToWhiteTextAndNoStopsWhenThePatternLeavesThemOut() throws {
+        let pattern = try JSONDecoder().decode(PatternResponse.self, from: Data(#"{"shape_id":"s"}"#.utf8))
+
+        #expect(pattern.textColour == nil)
+        #expect(pattern.stops.isEmpty)
     }
 
     @Test func keepsARouteOnceFetched() async throws {

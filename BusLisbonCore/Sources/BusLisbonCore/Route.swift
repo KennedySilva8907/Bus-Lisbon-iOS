@@ -12,16 +12,35 @@ public struct Coordinate: Sendable, Equatable, Codable {
 
 public struct Route: Sendable, Equatable, Codable {
     public let colour: String
+    public let textColour: String
     public let points: [Coordinate]
+    public let stops: [Coordinate]
 }
 
 struct PatternResponse: Decodable {
     let colour: String?
+    let textColour: String?
     let shapeId: String?
+    let stops: [Coordinate]
+
+    private struct PathEntry: Decodable {
+        let stop: Stop
+    }
 
     enum CodingKeys: String, CodingKey {
         case colour = "color"
+        case textColour = "text_color"
         case shapeId = "shape_id"
+        case path
+    }
+
+    init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        colour = container.decodeTextIfPresent(forKey: .colour)
+        textColour = container.decodeTextIfPresent(forKey: .textColour)
+        shapeId = container.decodeTextIfPresent(forKey: .shapeId)
+        stops = ((try? container.decodeIfPresent(LossyArray<PathEntry>.self, forKey: .path))?.elements ?? [])
+            .map { Coordinate(lat: $0.stop.lat, lon: $0.stop.lon) }
     }
 }
 
@@ -48,7 +67,12 @@ extension BusLisbonAPI {
         let pattern = try await get(PatternResponse.self, Endpoint.pattern(patternId))
         guard let shapeId = pattern.shapeId else { return nil }
         let shape = try await get(ShapeResponse.self, Endpoint.shape(shapeId))
-        return Route(colour: pattern.colour ?? "#E53935", points: shape.points)
+        return Route(
+            colour: pattern.colour ?? "#E53935",
+            textColour: pattern.textColour ?? "#FFFFFF",
+            points: shape.points,
+            stops: pattern.stops
+        )
     }
 }
 
@@ -68,6 +92,12 @@ public struct RGB: Sendable, Equatable {
     public let red: Double
     public let green: Double
     public let blue: Double
+
+    public init(red: Double, green: Double, blue: Double) {
+        self.red = red
+        self.green = green
+        self.blue = blue
+    }
 }
 
 public func rgb(hex: String) -> RGB? {
