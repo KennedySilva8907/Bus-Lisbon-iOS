@@ -343,6 +343,23 @@ struct LabelTests {
     }
 }
 
+struct FollowedDepartureTests {
+    @Test func recognisesTheFollowedDepartureAfterItsBusIdChangesShape() throws {
+        let coming = try #require(toArrivals([entry(vehicleId: "[BNA17]2766")]).first)
+        let gone = try #require(toArrivals([entry(vehicleId: "2766", isPast: true)]).first)
+
+        #expect(coming.vehicleId != gone.vehicleId)
+        #expect(isSameDeparture(gone, lineId: coming.lineId, scheduledUnix: coming.scheduledUnix))
+    }
+
+    @Test func doesNotMixUpTwoDeparturesOfTheSameLine() throws {
+        let first = try #require(toArrivals([entry()]).first)
+        let next = try #require(toArrivals([entry(scheduledUnix: now + 1_800)]).first)
+
+        #expect(!isSameDeparture(next, lineId: first.lineId, scheduledUnix: first.scheduledUnix))
+    }
+}
+
 struct ArrivalIdentityTests {
     @Test func keepsTheSameIdWhenTheTripIdLosesAPrefixAfterTheBusPasses() throws {
         let coming = try #require(toArrivals([entry()]).first)
