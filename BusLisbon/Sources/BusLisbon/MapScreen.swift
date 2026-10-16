@@ -13,6 +13,8 @@ struct MapScreen: View {
     @State private var wake = 0
     @State private var closeTaps = 0
     @State private var searchShape = SearchBarShape()
+    @State private var showAlerts = false
+    @State private var openAfterAlerts: String?
     @State private var detent: PresentationDetent = MapScreen.panelOpen
     @Environment(\.scenePhase) private var scenePhase
 
@@ -40,6 +42,23 @@ struct MapScreen: View {
                 .padding(.horizontal, 16)
                 .padding(.top, 8)
             }
+            .overlay(alignment: .bottomTrailing) {
+                let pending = ArrivalAlerts.shared.alerts.count
+                if pending > 0 && selectedStop == nil {
+                    AlertsButton(count: pending) { showAlerts = true }
+                        .padding(.trailing, 16)
+                        .padding(.bottom, 16 + 48 + 12)
+                        .transition(.scale.combined(with: .opacity))
+                }
+            }
+            .animation(.snappy, value: ArrivalAlerts.shared.alerts.isEmpty)
+            .sheet(isPresented: $showAlerts, onDismiss: openStopFromAlerts) {
+                AlertsList { openAfterAlerts = $0 }
+                    .environment(\.colorScheme, .dark)
+                    .presentationDetents([.medium, .large])
+                    .presentationBackground { PanelBackground() }
+                    .presentationCornerRadius(PanelBackground.cornerRadius)
+            }
             .overlay(alignment: .topTrailing) {
                 if following != nil {
                     RoundButton(systemImage: "scope", label: "Centrar no autocarro") { fitToken += 1 }
@@ -58,7 +77,15 @@ struct MapScreen: View {
                 }
             }
             .onChange(of: scenePhase) { _, phase in
-                if phase == .active { wake += 1 }
+                switch phase {
+                case .active:
+                    wake += 1
+                    Task { await ArrivalAlerts.shared.refreshAll() }
+                case .background:
+                    ArrivalAlerts.shared.planBackgroundRefresh()
+                default:
+                    break
+                }
             }
             .onChange(of: selectedStop?.id) { _, _ in detent = MapScreen.panelOpen }
             .sensoryFeedback(.impact(weight: .light), trigger: closeTaps)
@@ -82,6 +109,12 @@ struct MapScreen: View {
                 .presentationBackground { PanelBackground() }
                 .presentationCornerRadius(PanelBackground.cornerRadius)
             }
+    }
+
+    private func openStopFromAlerts() {
+        guard let id = openAfterAlerts else { return }
+        openAfterAlerts = nil
+        selectedStop = store.searchIndex?.stops(withIds: [id]).first
     }
 
     @ViewBuilder

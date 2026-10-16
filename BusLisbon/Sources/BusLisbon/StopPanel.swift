@@ -11,6 +11,7 @@ struct StopPanel: View {
     @State private var model = StopPanelModel()
     @State private var showAllPast = false
     @State private var revealed = false
+    @State private var alertFor: Arrival?
     @Namespace private var rowSpace
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -35,6 +36,12 @@ struct StopPanel: View {
         }
         .task(id: stop.id) { await model.run(stopId: stop.id) }
         .onChange(of: model.loaded, initial: true) { _, loaded in revealed = loaded }
+        .sheet(item: $alertFor) { arrival in
+            AlertSetupSheet(arrival: arrival, stop: stop)
+                .presentationDetents([.height(340)])
+                .presentationBackground { PanelBackground() }
+                .presentationCornerRadius(PanelBackground.cornerRadius)
+        }
     }
 
     private var header: some View {
@@ -159,7 +166,12 @@ struct StopPanel: View {
                     .padding(.vertical, 24)
             }
             ForEach(Array(arrivals.enumerated()), id: \.element.id) { index, arrival in
-                UpcomingRow(arrival: arrival, now: now, selected: isFollowing(arrival))
+                UpcomingRow(
+                    arrival: arrival,
+                    now: now,
+                    selected: isFollowing(arrival),
+                    bell: describeArrival(arrival).trackable ? ArrivalAlerts.shared.alert(for: arrival) != nil : nil
+                ) { ring(arrival) }
                     .matchedGeometryEffect(id: arrival.id, in: rowSpace)
                     .opacity(revealed ? 1 : 0)
                     .offset(y: revealed || reduceMotion ? 0 : 14)
@@ -171,6 +183,14 @@ struct StopPanel: View {
             }
         }
         .animation(.easeOut(duration: 0.25), value: model.loaded)
+    }
+
+    private func ring(_ arrival: Arrival) {
+        if let existing = ArrivalAlerts.shared.alert(for: arrival) {
+            ArrivalAlerts.shared.cancel(existing.id)
+        } else {
+            alertFor = arrival
+        }
     }
 
     private func isFollowing(_ arrival: Arrival) -> Bool {

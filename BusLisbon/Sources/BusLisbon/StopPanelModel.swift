@@ -21,6 +21,7 @@ final class StopPanelModel {
                 arrivals = toArrivals(try await AppServices.api.board(stopId: stopId))
                 updatedAt = Date()
                 failed = false
+                await ArrivalAlerts.shared.refresh(stopId: stopId, arrivals: arrivals, now: Int(Date().timeIntervalSince1970))
             } catch {
                 failed = true
             }
