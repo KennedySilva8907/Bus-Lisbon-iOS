@@ -25,10 +25,10 @@ public func mapZoom(zoomScale: Double) -> Double {
 }
 
 public enum MapStyle {
-    public static let stopRadius = ZoomCurve([(9, 1), (26, 20)])
-    public static let stopStroke = ZoomCurve([(9, 0.01), (26, 7)])
-    public static let mutedStopRadius = ZoomCurve([(9, 1), (26, 10)])
-    public static let mutedStopStroke = ZoomCurve([(9, 0.01), (26, 3)])
+    public static let stopRadius = ZoomCurve([(10, 1.5), (12, 2.5), (14, 4), (16, 5.5), (18, 7), (20, 8)])
+    public static let stopRing = ZoomCurve([(10, 0.5), (13, 1), (16, 1.5), (19, 2)])
+    public static let mutedStopRadius = ZoomCurve([(13, 2.5), (16, 4), (18, 5), (20, 6)])
+    public static let mutedStopAlpha = ZoomCurve([(13, 0), (15.5, 0.75)])
     public static let waypointRadius = ZoomCurve([(9, 1), (26, 15)])
     public static let waypointStroke = ZoomCurve([(9, 1), (26, 7)])
     public static let vehicleSize = ZoomCurve([(10, 0.34), (13, 0.52), (15, 0.68), (17, 0.86), (20, 1.05)])

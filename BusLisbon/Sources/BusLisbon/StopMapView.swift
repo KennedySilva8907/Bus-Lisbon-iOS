@@ -11,9 +11,9 @@ final class BusAnnotation: MKPointAnnotation {
 
 enum Paint {
     static let yellow = RGB(red: 1, green: 0.8, blue: 0)
-    static let ink = RGB(red: 0.102, green: 0.102, blue: 0.102)
     static let white = RGB(red: 1, green: 1, blue: 1)
     static let red = RGB(red: 0.898, green: 0.224, blue: 0.208)
+    static let shadow = RGB(red: 0, green: 0, blue: 0)
 }
 
 extension CGContext {
@@ -32,7 +32,6 @@ func drawRings(
     radius: Double,
     stroke: Double,
     fill: RGB,
-    fillAlpha: Double,
     edge: RGB,
     in context: CGContext
 ) {
@@ -49,9 +48,33 @@ func drawRings(
     context.addPath(edges)
     context.fillPath()
 
-    context.setFill(fill, alpha: fillAlpha)
+    context.setFill(fill)
     context.addPath(fills)
     context.fillPath()
+}
+
+func drawDots(
+    _ renderer: MKOverlayRenderer,
+    at points: [MKMapPoint],
+    radius: Double,
+    ring: Double,
+    unit: Double,
+    in context: CGContext
+) {
+    let outer = radius + ring
+
+    func disc(_ point: MKMapPoint, radius: Double, drop: Double = 0) -> CGRect {
+        renderer.rect(for: MKMapRect(x: point.x - radius, y: point.y - radius + drop, width: radius * 2, height: radius * 2))
+    }
+
+    for point in points {
+        context.setFill(Paint.shadow, alpha: 0.22)
+        context.fillEllipse(in: disc(point, radius: outer + 0.5 * unit, drop: 0.6 * unit))
+        context.setFill(Paint.white)
+        context.fillEllipse(in: disc(point, radius: outer))
+        context.setFill(Paint.yellow)
+        context.fillEllipse(in: disc(point, radius: radius))
+    }
 }
 
 func boundingRect(_ points: [MKMapPoint]) -> MKMapRect {
@@ -99,21 +122,18 @@ final class StopsRenderer: MKOverlayRenderer {
 
     override func draw(_ mapRect: MKMapRect, zoomScale: MKZoomScale, in context: CGContext) {
         let zoom = mapZoom(zoomScale: Double(zoomScale))
+        let alpha = muted ? MapStyle.mutedStopAlpha.at(zoom) : 1
+        guard alpha > 0 else { return }
+
         let unit = 1 / Double(zoomScale)
         let radius = (muted ? MapStyle.mutedStopRadius : MapStyle.stopRadius).at(zoom) * unit
-        let stroke = (muted ? MapStyle.mutedStopStroke : MapStyle.stopStroke).at(zoom) * unit
-        let reach = mapRect.insetBy(dx: -(radius + stroke) * 2, dy: -(radius + stroke) * 2)
+        let ring = MapStyle.stopRing.at(zoom) * unit
+        let reach = mapRect.insetBy(dx: -(radius + ring) * 2, dy: -(radius + ring) * 2)
 
-        drawRings(
-            self,
-            at: points.filter { reach.contains($0) },
-            radius: radius,
-            stroke: stroke,
-            fill: Paint.yellow,
-            fillAlpha: 0.9,
-            edge: Paint.ink,
-            in: context
-        )
+        context.setAlpha(alpha)
+        context.beginTransparencyLayer(auxiliaryInfo: nil)
+        drawDots(self, at: points.filter { reach.contains($0) }, radius: radius, ring: ring, unit: unit, in: context)
+        context.endTransparencyLayer()
     }
 }
 
@@ -568,6 +588,7 @@ final class MapCoordinator: NSObject, MKMapViewDelegate, UIGestureRecognizerDele
 
     @objc func tapped(_ tap: UITapGestureRecognizer) {
         guard let map = tap.view as? MKMapView, let stopsOverlay else { return }
+        if stopsOverlay.muted, MapStyle.mutedStopAlpha.at(currentZoom(of: map)) == 0 { return }
         let touch = MKMapPoint(map.convert(tap.location(in: map), toCoordinateFrom: map))
         let mapPointsPerScreenPoint = map.visibleMapRect.width / Double(map.bounds.width)
         if let stop = stopsOverlay.nearest(to: touch, within: 22 * mapPointsPerScreenPoint) {
