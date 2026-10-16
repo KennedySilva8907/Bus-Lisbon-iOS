@@ -31,10 +31,6 @@ public enum MapStyle {
     public static let mutedStopStroke = ZoomCurve([(9, 0.01), (26, 3)])
     public static let waypointRadius = ZoomCurve([(9, 1), (26, 15)])
     public static let waypointStroke = ZoomCurve([(9, 1), (26, 7)])
-    public static let routeLine = ZoomCurve([(10, 4), (20, 12)])
-    public static let routeCasing = ZoomCurve([(10, 6), (20, 16)])
-    public static let arrowSize = ZoomCurve([(10, 6.4), (20, 12.8)])
-    public static let arrowSpacing = ZoomCurve([(10, 8), (20, 120)])
     public static let vehicleSize = ZoomCurve([(10, 0.34), (13, 0.52), (15, 0.68), (17, 0.86), (20, 1.05)])
     public static let vehicleGlowRadius = ZoomCurve([(10, 15), (13, 22), (15, 28), (17, 35), (20, 44)])
 }
