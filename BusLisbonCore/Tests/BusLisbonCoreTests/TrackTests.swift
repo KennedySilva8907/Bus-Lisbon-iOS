@@ -14,7 +14,31 @@ private let outAndBack = Route(
     stops: [Coordinate(lat: 38.7501, lon: -9.145), corner, Coordinate(lat: 38.7501, lon: -9.145)]
 )
 
+private let upAndBackDown = RouteTrack([
+    Coordinate(lat: 38.750, lon: -9.1500),
+    Coordinate(lat: 38.760, lon: -9.1500),
+    Coordinate(lat: 38.760, lon: -9.1495),
+    Coordinate(lat: 38.750, lon: -9.1495),
+])!
+private let wayUp = RouteTrack([Coordinate(lat: 38.750, lon: -9.1500), Coordinate(lat: 38.760, lon: -9.1500)])!.length
+
 struct TrackTests {
+    @Test func placesAStopOnTheRoadItIsOnNotTheParallelOneThePathPassesFirst() throws {
+        let stopOnTheWayDown = Coordinate(lat: 38.7552, lon: -9.14955)
+
+        let along = try #require(upAndBackDown.locate(stopOnTheWayDown, after: 0))
+
+        #expect(along > wayUp)
+    }
+
+    @Test func keepsABusOnTheRoadItIsDrivingUp() throws {
+        let busOnTheWayUp = Coordinate(lat: 38.7552, lon: -9.15003)
+
+        let along = try #require(upAndBackDown.locate(busOnTheWayUp, after: 0))
+
+        #expect(along < wayUp)
+    }
+
     @Test func placesAPointBesideTheRoadOnTheRoad() throws {
         let along = try #require(eastThenNorth.locate(Coordinate(lat: 38.7502, lon: -9.145)))
 
