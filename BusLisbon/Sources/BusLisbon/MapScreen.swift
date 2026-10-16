@@ -11,6 +11,7 @@ struct MapScreen: View {
     @State private var fitToken = 0
     @State private var wake = 0
     @State private var closeTaps = 0
+    @State private var searchShape = SearchBarShape()
     @State private var detent: PresentationDetent = MapScreen.panelOpen
     @Environment(\.scenePhase) private var scenePhase
 
@@ -30,7 +31,7 @@ struct MapScreen: View {
             .ignoresSafeArea()
             .overlay(alignment: .top) {
                 VStack(spacing: 8) {
-                    SearchBar(index: store.searchIndex, favourites: favourites, tucked: selectedStop != nil) { selectedStop = $0 }
+                    SearchBar(index: store.searchIndex, favourites: favourites, tucked: selectedStop != nil, shape: $searchShape) { selectedStop = $0 }
                     offlineBanner
                     noPositionBanner
                 }
@@ -41,7 +42,10 @@ struct MapScreen: View {
                 if following != nil {
                     RoundButton(systemImage: "scope", label: "Centrar no autocarro") { fitToken += 1 }
                         .padding(.trailing, 16)
-                        .padding(.top, 8)
+                        .padding(.top, 8 + (SearchBar.openHeight + 8) * searchShape.openness)
+                        .opacity(searchShape.listing ? 0 : 1)
+                        .allowsHitTesting(!searchShape.listing)
+                        .animation(SearchBar.settle, value: searchShape)
                 }
             }
             .task(id: FollowRun(target: following, wake: wake)) {
