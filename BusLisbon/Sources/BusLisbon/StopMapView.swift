@@ -261,17 +261,30 @@ struct StopMapView: UIViewRepresentable {
         tap.delegate = context.coordinator
         map.addGestureRecognizer(tap)
 
+        let locate = UIView()
+        locate.translatesAutoresizingMaskIntoConstraints = false
+        locate.backgroundColor = UIColor(Theme.ink.opacity(0.9))
+        locate.layer.cornerRadius = 24
+        locate.layer.borderWidth = 1
+        locate.layer.borderColor = UIColor.white.withAlphaComponent(0.08).cgColor
+        locate.layer.shadowColor = UIColor.black.cgColor
+        locate.layer.shadowOpacity = 0.3
+        locate.layer.shadowRadius = 12
+        locate.layer.shadowOffset = CGSize(width: 0, height: 4)
+
         let tracking = MKUserTrackingButton(mapView: map)
         tracking.translatesAutoresizingMaskIntoConstraints = false
-        tracking.backgroundColor = .systemBackground
-        tracking.layer.cornerRadius = 10
-        tracking.clipsToBounds = true
-        map.addSubview(tracking)
+        tracking.tintColor = UIColor(Theme.yellow)
+        tracking.backgroundColor = .clear
+        locate.addSubview(tracking)
+        map.addSubview(locate)
         NSLayoutConstraint.activate([
-            tracking.trailingAnchor.constraint(equalTo: map.safeAreaLayoutGuide.trailingAnchor, constant: -16),
-            tracking.bottomAnchor.constraint(equalTo: map.safeAreaLayoutGuide.bottomAnchor, constant: -16),
-            tracking.widthAnchor.constraint(equalToConstant: 44),
-            tracking.heightAnchor.constraint(equalToConstant: 44),
+            locate.trailingAnchor.constraint(equalTo: map.safeAreaLayoutGuide.trailingAnchor, constant: -16),
+            locate.bottomAnchor.constraint(equalTo: map.safeAreaLayoutGuide.bottomAnchor, constant: -16),
+            locate.widthAnchor.constraint(equalToConstant: 48),
+            locate.heightAnchor.constraint(equalToConstant: 48),
+            tracking.centerXAnchor.constraint(equalTo: locate.centerXAnchor),
+            tracking.centerYAnchor.constraint(equalTo: locate.centerYAnchor),
         ])
 
         return map
@@ -313,6 +326,7 @@ final class MapCoordinator: NSObject, MKMapViewDelegate, UIGestureRecognizerDele
     private var busAlong: Double?
     private var glide: (from: Double, to: Double, start: CFTimeInterval)?
     private var displayLink: CADisplayLink?
+    private var centredOnUser = false
     private var framedKey: FrameKey?
 
     func show(stops: [Stop], muted: Bool, on map: MKMapView) {
@@ -601,6 +615,15 @@ final class MapCoordinator: NSObject, MKMapViewDelegate, UIGestureRecognizerDele
         shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer
     ) -> Bool {
         true
+    }
+
+    func mapView(_ mapView: MKMapView, didUpdate userLocation: MKUserLocation) {
+        guard !centredOnUser, selectedId == nil, let location = userLocation.location else { return }
+        centredOnUser = true
+        mapView.setRegion(
+            MKCoordinateRegion(center: location.coordinate, latitudinalMeters: 900, longitudinalMeters: 900),
+            animated: true
+        )
     }
 
     func mapViewDidChangeVisibleRegion(_ mapView: MKMapView) {
