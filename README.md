@@ -52,7 +52,7 @@ The app targets iOS 17.
 
 ## CI
 
-GitHub Actions runs the core tests on Ubuntu for every pull request. The iOS build runs on macOS only after a merge to `main`, because macOS minutes cost ten times more on a private repository.
+GitHub Actions runs the core tests on Ubuntu and builds the app for iOS on macOS, on every pull request and on every push to `main`.
 
 ## Limits
 
