@@ -15,6 +15,7 @@ enum Endpoint {
     static var health: URL { url(backend + "/health") }
     static var stops: URL { url(carris + "/stops") }
     static var fleet: URL { url(carris + "/v2/vehicles") }
+    static var ranking: URL { url(backend + "/api/lines/reliability") }
 
     static func board(_ stopId: String) -> URL { url(backend + "/api/arrivals/by-stop/" + segment(stopId)) }
     static func vehicle(_ id: String) -> URL { url(backend + "/api/vehicles/" + segment(id)) }
