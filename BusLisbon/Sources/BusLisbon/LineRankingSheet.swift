@@ -63,6 +63,7 @@ struct LineRankingSheet: View {
                     LineTrustDetail(line: line, toleranceSeconds: model.ranking?.toleranceSeconds ?? 300)
                 }
         }
+        .tint(Theme.yellow)
         .task { await model.load() }
     }
 

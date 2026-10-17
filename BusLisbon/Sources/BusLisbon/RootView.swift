@@ -12,6 +12,7 @@ struct RootView: View {
                 SplashScreen(stopsReady: store.stops != nil) { splashDone = true }
             }
         }
+        .tint(Theme.yellow)
         .task { await store.load() }
     }
 }
