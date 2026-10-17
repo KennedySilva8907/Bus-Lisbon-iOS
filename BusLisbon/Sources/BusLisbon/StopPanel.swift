@@ -3,7 +3,8 @@ import BusLisbonCore
 
 struct StopPanel: View {
     let stop: Stop
-    let favourites: FavouriteStops
+    let favourites: Favourites
+    let favouriteLines: Favourites
     let following: FollowTarget?
     let onFollow: (Arrival) -> Void
     let onClose: () -> Void
@@ -170,8 +171,11 @@ struct StopPanel: View {
                     arrival: arrival,
                     now: now,
                     selected: isFollowing(arrival),
-                    bell: describeArrival(arrival).trackable ? ArrivalAlerts.shared.alert(for: arrival) != nil : nil
-                ) { ring(arrival) }
+                    lineStar: favouriteLines.contains(arrival.lineId),
+                    onLineStar: { favouriteLines.toggle(arrival.lineId) },
+                    bell: describeArrival(arrival).trackable ? ArrivalAlerts.shared.alert(for: arrival) != nil : nil,
+                    onBell: { ring(arrival) }
+                )
                     .matchedGeometryEffect(id: arrival.id, in: rowSpace)
                     .opacity(revealed ? 1 : 0)
                     .offset(y: revealed || reduceMotion ? 0 : 14)

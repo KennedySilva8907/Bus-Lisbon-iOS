@@ -8,7 +8,7 @@ struct SearchBarShape: Equatable {
 
 struct SearchBar: View {
     let index: StopSearchIndex?
-    let favourites: FavouriteStops
+    let favourites: Favourites
     let tucked: Bool
     @Binding var shape: SearchBarShape
     let onPick: (Stop) -> Void

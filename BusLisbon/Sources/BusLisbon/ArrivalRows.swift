@@ -57,6 +57,8 @@ struct UpcomingRow: View {
     let arrival: Arrival
     let now: Int
     let selected: Bool
+    var lineStar: Bool? = nil
+    var onLineStar: () -> Void = {}
     var bell: Bool? = nil
     var onBell: () -> Void = {}
 
@@ -89,6 +91,9 @@ struct UpcomingRow: View {
                 }
             }
             Spacer(minLength: 8)
+            if let lineStar {
+                LineStar(lineId: arrival.lineId, chosen: lineStar, toggle: onLineStar)
+            }
             if let bell {
                 Button(action: onBell) {
                     Image(systemName: bell ? "bell.and.waves.left.and.right.fill" : "bell")
