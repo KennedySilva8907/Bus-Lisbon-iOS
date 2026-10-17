@@ -59,3 +59,7 @@ GitHub Actions runs the core tests on Ubuntu for every pull request. The iOS bui
 - With a free Apple account the app expires after 7 days and needs `xtool dev` again. Nothing on the phone is lost.
 - There are no push notifications without the paid developer programme, so alerts are local notifications. While the app is open the alert time follows the estimate. With the app closed iOS only wakes it now and then, so a bus that gets late after you close the app can make the alert go off early.
 - The line reliability ranking from the web app isn't in the iOS app yet.
+
+## Licence
+
+MIT, see [LICENSE](LICENSE).
