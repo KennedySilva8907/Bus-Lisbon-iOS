@@ -242,6 +242,7 @@ struct StopMapView: UIViewRepresentable {
         let map = MKMapView()
         map.delegate = context.coordinator
         map.showsUserLocation = true
+        map.tintColor = .systemBlue
         map.pointOfInterestFilter = .excludingAll
         map.isRotateEnabled = false
         map.isPitchEnabled = false
