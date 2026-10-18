@@ -8,7 +8,9 @@ struct MapScreen: View {
     @State private var selectedStop: Stop?
     @State private var following: FollowTarget?
     @State private var follow = FollowModel()
-    @State private var favourites = FavouriteStops()
+    @State private var favourites = Favourites(key: "favouriteStops")
+    @State private var favouriteLines = Favourites(key: "favouriteLines")
+    @State private var showRanking = false
     @State private var fitToken = 0
     @State private var wake = 0
     @State private var closeTaps = 0
@@ -44,12 +46,25 @@ struct MapScreen: View {
             }
             .overlay(alignment: .bottomTrailing) {
                 let pending = ArrivalAlerts.shared.alerts.count
-                if pending > 0 && selectedStop == nil {
-                    AlertsButton(count: pending) { showAlerts = true }
-                        .padding(.trailing, 16)
-                        .padding(.bottom, 16 + 48 + 12)
-                        .transition(.scale.combined(with: .opacity))
+                if selectedStop == nil {
+                    VStack(spacing: 12) {
+                        RoundButton(systemImage: "chart.bar.fill", label: "Pontualidade das linhas") { showRanking = true }
+                        if pending > 0 {
+                            AlertsButton(count: pending) { showAlerts = true }
+                                .transition(.scale.combined(with: .opacity))
+                        }
+                    }
+                    .padding(.trailing, 16)
+                    .padding(.bottom, 16 + 48 + 12)
+                    .transition(.opacity)
                 }
+            }
+            .sheet(isPresented: $showRanking) {
+                LineRankingSheet(favourites: favouriteLines)
+                    .environment(\.colorScheme, .dark)
+                    .presentationDetents([.medium, .large])
+                    .presentationBackground { PanelBackground() }
+                    .presentationCornerRadius(PanelBackground.cornerRadius)
             }
             .animation(.snappy, value: ArrivalAlerts.shared.alerts.isEmpty)
             .sheet(isPresented: $showAlerts, onDismiss: { openStopFromAlerts(); openFromNotification() }) {
@@ -92,7 +107,7 @@ struct MapScreen: View {
             .onChange(of: revealed && store.searchIndex != nil) { _, _ in openFromNotification() }
             .sensoryFeedback(.impact(weight: .light), trigger: closeTaps)
             .sheet(item: $selectedStop, onDismiss: { following = nil; openFromNotification() }) { stop in
-                StopPanel(stop: stop, favourites: favourites, following: following) { arrival in
+                StopPanel(stop: stop, favourites: favourites, favouriteLines: favouriteLines, following: following) { arrival in
                     following = FollowTarget(
                         vehicleId: arrival.vehicleId,
                         tripId: arrival.tripId,

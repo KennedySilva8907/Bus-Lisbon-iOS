@@ -4,10 +4,15 @@ import BusLisbonCore
 
 @Observable
 @MainActor
-final class FavouriteStops {
-    private static let key = "favouriteStops"
+final class Favourites {
+    private let key: String
 
-    private(set) var ids: [String] = UserDefaults.standard.stringArray(forKey: key) ?? []
+    private(set) var ids: [String]
+
+    init(key: String) {
+        self.key = key
+        ids = UserDefaults.standard.stringArray(forKey: key) ?? []
+    }
 
     func contains(_ id: String) -> Bool {
         ids.contains(id)
@@ -23,6 +28,6 @@ final class FavouriteStops {
 
     private func save(_ next: [String]) {
         ids = next
-        UserDefaults.standard.set(next, forKey: Self.key)
+        UserDefaults.standard.set(next, forKey: key)
     }
 }

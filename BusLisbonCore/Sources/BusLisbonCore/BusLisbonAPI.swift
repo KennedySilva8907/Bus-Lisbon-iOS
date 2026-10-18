@@ -45,6 +45,10 @@ public struct BusLisbonAPI: Sendable {
         return try JSONDecoder().decode(GatewayVehicleResponse.self, from: data).vehicle.position
     }
 
+    public func ranking() async throws -> LineRanking {
+        try await get(LineRanking.self, Endpoint.ranking)
+    }
+
     public func fleet() async throws -> [BusPosition] {
         try await get(LossyArray<FleetVehicle>.self, Endpoint.fleet).elements.compactMap(\.position)
     }
